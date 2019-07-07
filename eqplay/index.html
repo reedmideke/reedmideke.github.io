@@ -8,49 +8,102 @@ headincludes:
 
 <div id="map" class="map" style="width:100%;height:70vh;min-height:400px"></div>
 <script type="text/javascript">
-  var map = new ol.Map({
-	target: 'map',
-	layers: [
-	  new ol.layer.Tile({
-		source: new ol.source.OSM()
-	  })
-	],
-	view: new ol.View({
-	  center: ol.proj.fromLonLat([-117.6, 35.77]),
-	  zoom: 6
-	})
-  });
+var vsource = new ol.source.Vector();
+var vlayer = new ol.layer.Vector({
+  source:vsource
+});
+var map = new ol.Map({
+  target: 'map',
+  layers: [
+    new ol.layer.Tile({
+    source: new ol.source.OSM()
+    }),
+    vlayer
+  ],
+  view: new ol.View({
+    center: ol.proj.fromLonLat([-117.6, 35.77]),
+    zoom: 7
+  })
+});
 
 
+var mscale=1000;
+var eqdata=null;
+var features=[];
+function infomsg(msg) {
+  $('#status').append('<div class="info-msg">'+msg+'</div>');
+}
 function load_eq_data() {
-	var dataurl=$('#sel_src').val();
-	var req=$.ajax({
-		url:dataurl,
-		datatype:'json'
-	})
-		.done(function(data,txtstatus,xhr) {
-			//console.log('whoopie!',data);
-			$('#status').append('<div>Loaded '+data.features.length+' earthquakes from ' +dataurl+'</div>');
-
-		})
-		.fail(function(data,txtstatus,err) {
-			console.log('whoopsie!',txtstatus,err);
-			$('#status').append('<div>Failed to load '+dataurl+' error '+err+'</div>');
-		});
+  var dataurl=$('#sel_src').val();
+  var req=$.ajax({
+    url:dataurl,
+    datatype:'json'
+  })
+    .done(function(data,txtstatus,xhr) {
+      //console.log('whoopie!',data);
+      infomsg('Loaded '+data.features.length+' earthquakes from ' +dataurl);
+      eqdata=data;
+    })
+    .fail(function(data,txtstatus,err) {
+      console.log('whoopsie!',txtstatus,err);
+      infomsg('Failed to load '+dataurl+' error '+err);
+      eqdata=null;
+    });
 }
 $(document).ready(function() {
-	$('#btn_play').click(function() {
-	});
-	$('#sel_src').change(function() {
+  $('#btn_play').click(function() {
+    if(eqdata === null) {
+      $('#status').append('<div>no data loaded</div>');
+      return;
+    }
+    var i;
+    features=[];
+    var f=features
+    for(i=0;i<eqdata.features.length;i++) {
+      f[i]=new ol.Feature({
+        id:eqdata.features[i].id,
+        // TODO radious is in meters? or something should scale with view
+        geometry:new ol.geom.Circle(
+          ol.proj.fromLonLat([eqdata.features[i].geometry.coordinates[0],eqdata.features[i].geometry.coordinates[1]]),
+          eqdata.features[i].properties.mag*mscale)
+      });
+      f[i].setStyle( new ol.style.Style({
+          fill:new ol.style.Fill({color:[255,0,0,0]}),
+          stroke:new ol.style.Stroke({color:[255,255,0,0],width:3})
+        })
+      );
+    }
+    vsource.clear(true);
+    vsource.addFeatures(f);
+    var fi=f.length-1;
+    var timer=setInterval(function() {
+      if(fi==f.length-1) {
+        console.log('start');
+      }
+      f[fi].setStyle( new ol.style.Style({
+         fill:new ol.style.Fill({color:[0,255,0,0.5]}),
+         stroke:new ol.style.Stroke({color:[255,255,0,0.8],width:3})
+       })
+      );
+      fi--
+      if(fi == -1) {
+        clearInterval(timer);
+        console.log('done');
+      }
+    },100);
+  });
 
-		load_eq_data();
-	});
-	load_eq_data();
+  $('#sel_src').change(function() {
+    load_eq_data();
+  });
+
+  load_eq_data();
 });
 </script>
 <div>
+<label for="sel_src">Data source:</label>
 <select id="sel_src">
-	<option value="/assets/json/test-20190706-2.5_week.geojson.json">static test</option>
+  <option value="/assets/json/test-20190706-2.5_week.geojson.json">static test</option>
     <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson">M4.5+ Earthquakes Past Day</option>
     <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">M2.5+ Earthquakes Past Day</option>
     <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson">M4.5+ Earthquakes Past Week</option>
