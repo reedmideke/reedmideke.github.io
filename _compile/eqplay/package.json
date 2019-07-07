@@ -1,0 +1,16 @@
+{
+  "name": "reedmideke-eqplay",
+  "version": "1.0.0",
+  "description": "Open layers based earthquake visualizer",
+  "scripts": {
+    "build": "webpack --config webpack.config.js --mode production",
+    "build-dev": "webpack --config webpack.config.js --mode development"
+  },
+  "devDependencies": {
+    "webpack": "^4.12.1",
+    "webpack-command": "^0.3.0"
+  },
+  "dependencies": {
+    "ol": "^5.1.2"
+  }
+}

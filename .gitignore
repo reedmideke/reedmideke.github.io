@@ -2,3 +2,5 @@ _site/
 .sass-cache/
 .jekyll-cache/
 .jekyll-metadata
+assets/js/eqplay.dev.js
+_compile/**/node_modules/
