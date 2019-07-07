@@ -30,8 +30,10 @@ var map = new ol.Map({
 var mscale=1000;
 var eqdata=null;
 var features=[];
+var t_end=null;
+var t_start=null;
 function infomsg(msg) {
-  $('#status').append('<div class="info-msg">'+msg+'</div>');
+  $('#status').append('<div class="info-msg">'+msg+'<\/div>');
 }
 function load_eq_data() {
   var dataurl=$('#sel_src').val();
@@ -43,29 +45,69 @@ function load_eq_data() {
       //console.log('whoopie!',data);
       infomsg('Loaded '+data.features.length+' earthquakes from ' +dataurl);
       eqdata=data;
+      t_end = new Date(eqdata.metadata.generated)
+      var days
+      // TODO hacky
+      if(eqdata.metadata.url.match(/_week\.geojson$/)) {
+        days=7;
+      } else if(eqdata.metadata.url.match(/_day\.geojson$/)) {
+        days=1;
+      }
+      t_start = new Date(eqdata.metadata.generated-(days*24*60*60*1000));
+      infomsg('Date range '+t_start.toLocaleString()+' - ' +t_end.toLocaleString());
     })
     .fail(function(data,txtstatus,err) {
       console.log('whoopsie!',txtstatus,err);
       infomsg('Failed to load '+dataurl+' error '+err);
       eqdata=null;
+      t_end=null;
+      t_start=null;
     });
 }
+function update_features_for_time(t) {
+  var eq;
+  var i;
+  for(i=0;i<eqdata.features.length;i++) {
+    eq=eqdata.features[i];
+    if(eq.properties.time > t && eq.visible) {
+      features[i].setStyle( new ol.style.Style({
+        fill:new ol.style.Fill({color:[255,0,0,0]}),
+        stroke:new ol.style.Stroke({color:[255,255,0,0],width:3})
+      })
+      );
+      eq.visible=false;
+      continue;
+    }
+    if(eq.properties.time < t && !eq.visible) {
+      features[i].setStyle( new ol.style.Style({
+         fill:new ol.style.Fill({color:[0,255,0,0.5]}),
+         stroke:new ol.style.Stroke({color:[255,255,0,0.8],width:3})
+       })
+      );
+      eq.visible=true;
+    }
+  }
+}
+
 $(document).ready(function() {
   $('#btn_play').click(function() {
     if(eqdata === null) {
-      $('#status').append('<div>no data loaded</div>');
+      infomsg('no data loaded');
       return;
     }
     var i;
     features=[];
-    var f=features
+    var f=features;
+    var eq;
     for(i=0;i<eqdata.features.length;i++) {
+      eq=eqdata.features[i];
+      eq.visible=false;
       f[i]=new ol.Feature({
         id:eqdata.features[i].id,
         // TODO radious is in meters? or something should scale with view
         geometry:new ol.geom.Circle(
-          ol.proj.fromLonLat([eqdata.features[i].geometry.coordinates[0],eqdata.features[i].geometry.coordinates[1]]),
-          eqdata.features[i].properties.mag*mscale)
+          ol.proj.fromLonLat([eq.geometry.coordinates[0],eq.geometry.coordinates[1]]),
+          eq.properties.mag*mscale)
       });
       f[i].setStyle( new ol.style.Style({
           fill:new ol.style.Fill({color:[255,0,0,0]}),
@@ -75,6 +117,26 @@ $(document).ready(function() {
     }
     vsource.clear(true);
     vsource.addFeatures(f);
+    var ts_cur = t_start.getTime();
+    var ts_duration = (t_end.getTime() - ts_cur);
+    var fps=10;
+    var frames = fps*ts_duration/(60*1000*$('#time_scale').val());
+    var ts_step = ts_duration/frames;
+    console.log('frames',frames,'duration',ts_duration,'step',ts_step);
+    var timer=setInterval(function() {
+      if(ts_cur == t_start.getTime()) {
+        console.log('start');
+      }
+      update_features_for_time(ts_cur);
+      var d=new Date(ts_cur);
+      $('#cur_time').html(d.toLocaleString());
+      ts_cur += ts_step;
+      if(ts_cur > t_end.getTime()) {
+        clearInterval(timer);
+        console.log('done');
+      }
+    },100);
+    /*
     var fi=f.length-1;
     var timer=setInterval(function() {
       if(fi==f.length-1) {
@@ -91,6 +153,7 @@ $(document).ready(function() {
         console.log('done');
       }
     },100);
+    */
   });
 
   $('#sel_src').change(function() {
@@ -109,7 +172,10 @@ $(document).ready(function() {
     <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson">M4.5+ Earthquakes Past Week</option>
     <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson">M2.5+ Earthquakes Past Week</option>
 </select>
+<label for="time_scale">Time scale (minutes per second):</label>
+<input id="time_scale" type="number" min="1" max="240" value="120" />
 <button id="btn_play" type="button">go!</button>
+<div id="cur_time"></div>
 <div id="status" style="height:10em;overflow-y:scroll">
 </div>
 </div>
