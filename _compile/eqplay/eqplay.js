@@ -33,6 +33,8 @@ import {Circle, Point} from 'ol/geom';
 
 var EQPlay={
   init:function() {
+    this.target_fps=10;
+    this.info_update_frames=1; // update html info very Nth frame
     this.timer=null;
     this.mscale=1000;
     this.clear_data();
@@ -176,8 +178,7 @@ var EQPlay={
         this.ts_cur = this.t_start.getTime();
       }
       var duration_ms = (this.t_end.getTime() - this.ts_cur);
-      var fps=10;
-      var total_frames = fps*duration_ms/(60*1000*$('#time_scale').val());
+      var total_frames = this.target_fps*duration_ms/(1000*$('#time_scale').val());
       var ts_step = duration_ms/total_frames;
       var frame=0;
       this.timer=setInterval($.proxy(function() {
@@ -185,7 +186,7 @@ var EQPlay={
           console.log('start: step',ts_step,'frames',total_frames,'duration (s)',duration_ms/1000,'scale',$('#time_scale').val());
         }
         var d=new Date(this.ts_cur);
-        if(frame%fps == 0) {
+        if(frame%this.info_update_frames == 0) {
           $('#cur_time').html(d.toLocaleString());
         }
         this.update_features_for_time(this.ts_cur);
@@ -194,15 +195,17 @@ var EQPlay={
           this.stop_animation();
         }
         frame++;
-      },this),100);
+      },this),1000/this.target_fps);
   },
   update_animation_values() {
-    console.log('update_anim');
     if(this.timer) {
-      console.log('update_anim:running');
       this.stop_animation();
       this.start_animation();
     }
+  },
+  update_time_scale:function() {
+    this.update_animation_values();
+    $('#time_scale_display').html($('#time_scale').val());
   },
   change_source:function() {
     this.stop_animation();
@@ -214,7 +217,8 @@ var EQPlay={
     $('#btn_pause').click($.proxy(this.stop_animation,this));
     $('#btn_stop').click($.proxy(this.reset_animation,this));
     $('#sel_src').change($.proxy(this.change_source,this));
-    $('#time_scale').change($.proxy(this.update_animation_values,this));
+    $('#time_scale').change($.proxy(this.update_time_scale,this));
+    this.update_time_scale();
     this.get_data();
   }
 };

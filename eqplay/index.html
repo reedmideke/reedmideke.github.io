@@ -22,13 +22,13 @@ Select the data source, playback rate and hit go!
     <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson">M2.5+ Earthquakes Past Week</option>
 </select>
 <br />
-<label for="time_scale">Time scale (minutes per second):</label>
-<input id="time_scale" type="number" min="1" max="240" value="120" />
+<label for="time_scale">Time scale :</label>
+<input id="time_scale" type="range" min="60" max="60000" value="3600" /> <span id="time_scale_display"></span>x real time
 <br />
 <button id="btn_play" type="button">play &gt;</button>
 <button id="btn_pause" type="button">pause ||</button>
 <button id="btn_stop" type="button">stop</button>
-<div id="cur_time"></div>
+<div id="cur_time">-</div>
 <div id="status" style="height:10em;overflow-y:scroll">
 </div>
 </div>
