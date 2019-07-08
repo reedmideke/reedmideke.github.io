@@ -27,23 +27,22 @@ import {Map, View} from 'ol';
 import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer';
 import {Vector as VectorSource, OSM as OSMSource} from 'ol/source';
 import {fromLonLat} from 'ol/proj';
-import {Fill, Stroke, Style} from 'ol/style';
+import {Fill, Stroke, Style, Circle as CircleStyle} from 'ol/style';
 import Feature from 'ol/Feature';
-import Circle from 'ol/geom/Circle';
+import {Circle, Point} from 'ol/geom';
 
 var EQPlay={
   init:function() {
+    this.timer=null;
     this.mscale=1000;
-    this.eqdata=null;
-    this.features=[];
-    this.t_end=null;
-    this.t_start=null;
+    this.clear_data();
+    this.style_cache={};
 
     this.vsource = new VectorSource();
     var vlayer = new VectorLayer({
       source:this.vsource
     });
-    var map = new Map({
+    this.map = new Map({
       target: 'map',
       layers: [
         new TileLayer({
@@ -62,7 +61,9 @@ var EQPlay={
     $('#status').append('<div class="info-msg">'+msg+'</div>');
   },
   get_data:function() {
+    this.stop_animation();
     var dataurl=$('#sel_src').val();
+    // this should probably just use openlayers native stuff
     var req=$.ajax({
       url:dataurl,
       datatype:'json'
@@ -96,87 +97,124 @@ var EQPlay={
       }),this);
   },
   clear_data:function() {
-      this.eqdata=null;
-      this.t_end=null;
-      this.t_start=null;
+    this.eqdata=null;
+    this.t_end=null;
+    this.t_start=null;
+    this.ts_cur=0; // all will be in the future
+    if(this.vsource) {
+      this.vsource.clear(true);
+    }
+  },
+  get_eq_style:function(eq,t) {
+    var r = eq.properties.mag*2; // pixels? mags seem to be 2 decimal places
+    // TODO two level cache by fade
+    var style=this.style_cache[r];
+    // shamelessly stolen from
+    // https://openlayers.org/en/latest/examples/kml-earthquakes.html
+    if(!style) {
+      style = new Style({
+        image: new CircleStyle({
+          radius: r,
+          fill: new Fill({
+            color: 'rgba(255, 0, 0, 0.4)'
+          }),
+          stroke: new Stroke({
+            color: 'rgba(255, 128, 0, 0.2)',
+            width: 1
+          })
+        })
+      });
+      this.style_cache[r] = style;
+    }
+    return style;
   },
   update_features_for_time:function(t) {
     var eq;
     var i;
+    var f;
+    var style;
+    var to_add=[];
     for(i=0;i<this.eqdata.features.length;i++) {
       eq=this.eqdata.features[i];
-      if(eq.properties.time > t && eq.visible) {
-        this.features[i].setStyle( new Style({
-          fill:new Fill({color:[255,0,0,0]}),
-          stroke:new Stroke({color:[255,255,0,0],width:3})
-        })
-        );
-        eq.visible=false;
+      f=this.vsource.getFeatureById(i);
+      if(eq.properties.time > t) {
+        if(f) {
+          this.vsource.removeFeature(f)
+        }
         continue;
       }
-      if(eq.properties.time < t && !eq.visible) {
-        this.features[i].setStyle( new Style({
-           fill:new Fill({color:[0,255,0,0.5]}),
-           stroke:new Stroke({color:[255,255,0,0.8],width:3})
-         })
-        );
-        eq.visible=true;
+      if(eq.properties.time <= t) {
+        style = this.get_eq_style(eq,t);
+        if(!f) {
+          f=new Feature(new Point(fromLonLat([eq.geometry.coordinates[0],eq.geometry.coordinates[1]])));
+          f.setId(i); // use index rather than remote ID, for easier crossref
+          f.setStyle(style);
+          to_add.push(f);
+        }
       }
     }
+    this.vsource.addFeatures(to_add);
   },
-  onready:function() {
-    $('#btn_play').click($.proxy(function() {
+  stop_animation:function() {
+      if(this.timer) {
+        clearInterval(this.timer);
+        console.log('stop');
+        this.timer=null;
+      }
+  },
+  reset_animation:function() {
+    this.stop_animation();
+    this.ts_cur = 0;
+  },
+  start_animation:function() {
       if(this.eqdata === null) {
         this.infomsg('no data loaded');
         return;
       }
-      var i;
-      this.features=[];
-      var f=this.features;
-      var eq;
-      for(i=0;i<this.eqdata.features.length;i++) {
-        eq=this.eqdata.features[i];
-        eq.visible=false;
-        f[i]=new Feature({
-          id:eq.id,
-          // TODO radius is in meters? or something should scale with view
-          geometry:new Circle(
-            fromLonLat([eq.geometry.coordinates[0],eq.geometry.coordinates[1]]),
-            eq.properties.mag*this.mscale)
-        });
-        f[i].setStyle( new Style({
-            fill:new Fill({color:[255,0,0,0]}),
-            stroke:new Stroke({color:[255,255,0,0],width:3})
-          })
-        );
-      }
       this.vsource.clear(true);
-      this.vsource.addFeatures(f);
-      var ts_cur = this.t_start.getTime();
-      var ts_duration = (this.t_end.getTime() - ts_cur);
+      if(this.ts_cur == 0 || this.ts_cur >= this.t_end.getTime()) {
+        this.ts_cur = this.t_start.getTime();
+      }
+      var duration_ms = (this.t_end.getTime() - this.ts_cur);
       var fps=10;
-      var frames = fps*ts_duration/(60*1000*$('#time_scale').val());
-      var ts_step = ts_duration/frames;
-      console.log('frames',frames,'duration',ts_duration,'step',ts_step);
-      var timer=setInterval($.proxy(function() {
-        if(ts_cur == this.t_start.getTime()) {
-          console.log('start');
+      var total_frames = fps*duration_ms/(60*1000*$('#time_scale').val());
+      var ts_step = duration_ms/total_frames;
+      var frame=0;
+      this.timer=setInterval($.proxy(function() {
+        if(frame == 0) {
+          console.log('start: step',ts_step,'frames',total_frames,'duration (s)',duration_ms/1000,'scale',$('#time_scale').val());
         }
-        this.update_features_for_time(ts_cur);
-        var d=new Date(ts_cur);
-        $('#cur_time').html(d.toLocaleString());
-        ts_cur += ts_step;
-        if(ts_cur > this.t_end.getTime()) {
-          clearInterval(timer);
-          console.log('done');
+        var d=new Date(this.ts_cur);
+        if(frame%fps == 0) {
+          $('#cur_time').html(d.toLocaleString());
         }
+        this.update_features_for_time(this.ts_cur);
+        this.ts_cur += ts_step;
+        if(this.ts_cur > this.t_end.getTime()) {
+          this.stop_animation();
+        }
+        frame++;
       },this),100);
-    },this));
-
-    $('#sel_src').change($.proxy(function() {
-      this.get_data();
-    },this));
-
+  },
+  update_animation_values() {
+    console.log('update_anim');
+    if(this.timer) {
+      console.log('update_anim:running');
+      this.stop_animation();
+      this.start_animation();
+    }
+  },
+  change_source:function() {
+    this.stop_animation();
+    this.clear_data();
+    this.get_data();
+  },
+  onready:function() {
+    $('#btn_play').click($.proxy(this.start_animation,this));
+    $('#btn_pause').click($.proxy(this.stop_animation,this));
+    $('#btn_stop').click($.proxy(this.reset_animation,this));
+    $('#sel_src').change($.proxy(this.change_source,this));
+    $('#time_scale').change($.proxy(this.update_animation_values,this));
     this.get_data();
   }
 };

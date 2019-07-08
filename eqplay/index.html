@@ -9,7 +9,7 @@ A tool replay earthquake series from USGS <a href="https://earthquake.usgs.gov/e
 <h2>How do is use it?</h2>
 Select the data source, playback rate and hit go!
 <h2>I wish it did something different. Can I modify it?</h2>
-<a href="https://github.com/reedmideke/reedmideke.github.io">Yep</a>
+<a href="https://github.com/reedmideke/reedmideke.github.io">Yep</a>. It's a mess... caveat forker.
 
 <div id="map" class="map" style="width:100%;height:70vh;min-height:400px;margin-top:2em;"></div>
 <div>
@@ -25,7 +25,9 @@ Select the data source, playback rate and hit go!
 <label for="time_scale">Time scale (minutes per second):</label>
 <input id="time_scale" type="number" min="1" max="240" value="120" />
 <br />
-<button id="btn_play" type="button">go!</button>
+<button id="btn_play" type="button">play &gt;</button>
+<button id="btn_pause" type="button">pause ||</button>
+<button id="btn_stop" type="button">stop</button>
 <div id="cur_time"></div>
 <div id="status" style="height:10em;overflow-y:scroll">
 </div>
