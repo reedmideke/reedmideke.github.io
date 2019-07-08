@@ -4,15 +4,25 @@ title: Earthquake player
 headincludes:
  - olhead.html
 ---
-<h2>What is this?</h2>
-A tool replay earthquake series from USGS <a href="https://earthquake.usgs.gov/earthquakes/feed/">earthquake feeds</a> or select static files. Built using <a href="https://openlayers.org">OpenLayers</a>
-<h2>How do is use it?</h2>
-Select the data source, playback rate and hit go!
-<h2>I wish it did something different. Can I modify it?</h2>
+<b>What is this?</b>
+<p>
+A tool replay earthquake series from USGS <a href="https://earthquake.usgs.gov/earthquakes/feed/">earthquake feeds</a> or some locally hosted files featuring the July 2019 Ridgecrest quakes. Built using <a href="https://openlayers.org">OpenLayers</a>.
+</p>
+<b>How do I use it?</b>
+<p>
+Scroll down the <a href="#controls">controls</a>, pick your poison and hit Play.
+</p>
+<b>I wish it did something different. Can I modify it?</b>
+<p>
 <a href="https://github.com/reedmideke/reedmideke.github.io">Yep</a>. It's a mess... caveat forker.
+</p>
+<b>Bugs?</b>
+<p>
+Probably. <a href="https://twitter.com/reedmideke">Tweet me</a>?
+</p>
 
 <div id="map" class="map" style="width:100%;height:70vh;min-height:400px;margin-top:2em;"></div>
-<div>
+<div id="controls" style="margin-top:1em">
 <label for="sel_src">Data source:</label>
 <select id="sel_src">
   <option value="/assets/json/test-20190706-2.5_week.geojson.json">static test</option>
@@ -23,12 +33,24 @@ Select the data source, playback rate and hit go!
 </select>
 <br />
 <label for="time_scale">Time scale :</label>
-<input id="time_scale" type="range" min="60" max="60000" value="3600" /> <span id="time_scale_display"></span>x real time
+<input id="time_scale" type="range" min="60" max="60000" value="7200" /> <span id="time_scale_display"></span>x real time
+<button id="time_scale_x2" type="button">x2</button>
+<button id="time_scale_x10" type="button">x10</button>
+<button id="time_scale_x05" type="button">x0.5</button>
+<button id="time_scale_x01" type="button">x0.1</button>
 <br />
-<button id="btn_play" type="button">play &gt;</button>
-<button id="btn_pause" type="button">pause ||</button>
-<button id="btn_stop" type="button">stop</button>
-<div id="cur_time">-</div>
+<label for="fade_time">Fade time (seconds, 0 = no fade) :</label>
+<input id="fade_time" type="range" min="0" max="60" value="0" /> <span id="fade_time_display"></span>
+<br />
+<button id="btn_play" type="button">▶ Play</button>
+<button id="btn_pause" type="button">⏸ Pause</button>
+<button id="btn_stop" type="button">■ Stop</button>
+<div>
+Time: <span id="cur_time">-</span>
+</div>
+<div style="margin-top:1em">
+Status:
+</div>
 <div id="status" style="height:10em;overflow-y:scroll">
 </div>
 </div>

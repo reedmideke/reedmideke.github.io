@@ -33,10 +33,11 @@ import {Circle, Point} from 'ol/geom';
 
 var EQPlay={
   init:function() {
+    this.ts_step=0;
     this.target_fps=10;
-    this.info_update_frames=1; // update html info very Nth frame
+    this.fade_seconds=0;
+    this.info_update_frames=2; // update html info every Nth frame
     this.timer=null;
-    this.mscale=1000;
     this.clear_data();
     this.style_cache={};
 
@@ -94,7 +95,7 @@ var EQPlay={
       },this))
       .fail($.proxy(function(data,txtstatus,err) {
         console.log('whoopsie!',txtstatus,err);
-        infomsg('Failed to load '+dataurl+' error '+err);
+        this.infomsg('Failed to load '+dataurl+' error '+err);
         this.clear_data();
       }),this);
   },
@@ -107,26 +108,42 @@ var EQPlay={
       this.vsource.clear(true);
     }
   },
-  get_eq_style:function(eq,t) {
-    var r = eq.properties.mag*2; // pixels? mags seem to be 2 decimal places
-    // TODO two level cache by fade
-    var style=this.style_cache[r];
-    // shamelessly stolen from
+  get_eq_fade:function(eq,t) {
+    var fd = this.get_fade_duration();
+    if(fd == 0) {
+      return 1; // no fade
+    }
+    var age = t - eq.properties.time;
+    var alpha;
+    if(age >= fd) {
+      alpha=0;
+    } else {
+      alpha = (fd-age)/fd;
+    }
+    // limit distinct alpha values
+    alpha = Math.round(alpha*32)/32;
+    return alpha;
+  },
+  get_eq_style:function(eq,alpha) {
+    // butchered from
     // https://openlayers.org/en/latest/examples/kml-earthquakes.html
+    var r = eq.properties.mag*2; // pixels? mags seem to be 2 decimal places
+    var style_key = r + '_' + alpha;
+    var style=this.style_cache[style_key];
     if(!style) {
       style = new Style({
         image: new CircleStyle({
           radius: r,
           fill: new Fill({
-            color: 'rgba(255, 0, 0, 0.4)'
+            color: 'rgba(255, 0, 0, '+alpha+')'
           }),
           stroke: new Stroke({
-            color: 'rgba(255, 128, 0, 0.2)',
+            color: 'rgba(255, 128, 0, '+alpha*0.8+')',
             width: 1
           })
         })
       });
-      this.style_cache[r] = style;
+      this.style_cache[style_key] = style;
     }
     return style;
   },
@@ -136,22 +153,31 @@ var EQPlay={
     var f;
     var style;
     var to_add=[];
+    var alpha;
     for(i=0;i<this.eqdata.features.length;i++) {
       eq=this.eqdata.features[i];
       f=this.vsource.getFeatureById(i);
-      if(eq.properties.time > t) {
+      alpha=this.get_eq_fade(eq,t);
+      if(alpha == 0 || eq.properties.time > t) {
+        eq.last_alpha = 0;
         if(f) {
           this.vsource.removeFeature(f)
         }
         continue;
       }
       if(eq.properties.time <= t) {
-        style = this.get_eq_style(eq,t);
+        style = this.get_eq_style(eq,alpha);
         if(!f) {
           f=new Feature(new Point(fromLonLat([eq.geometry.coordinates[0],eq.geometry.coordinates[1]])));
           f.setId(i); // use index rather than remote ID, for easier crossref
           f.setStyle(style);
+          eq.last_alpha = alpha;
           to_add.push(f);
+        } else {
+          if(alpha != eq.last_alpha) {
+            f.setStyle(style);
+            eq.last_alpha = alpha;
+          }
         }
       }
     }
@@ -160,7 +186,8 @@ var EQPlay={
   stop_animation:function() {
       if(this.timer) {
         clearInterval(this.timer);
-        console.log('stop');
+        //console.log('stop');
+        this.ts_step=0;
         this.timer=null;
       }
   },
@@ -179,33 +206,61 @@ var EQPlay={
       }
       var duration_ms = (this.t_end.getTime() - this.ts_cur);
       var total_frames = this.target_fps*duration_ms/(1000*$('#time_scale').val());
-      var ts_step = duration_ms/total_frames;
+      this.ts_step = duration_ms/total_frames;
       var frame=0;
       this.timer=setInterval($.proxy(function() {
         if(frame == 0) {
-          console.log('start: step',ts_step,'frames',total_frames,'duration (s)',duration_ms/1000,'scale',$('#time_scale').val());
+//          console.log('start: step',this.ts_step,'frames',total_frames,'duration (s)',duration_ms/1000,'scale',$('#time_scale').val());
+          this.infomsg('start: '
+            + ' play time ' + total_frames/this.target_fps + 's'
+            + ' real time '+ (duration_ms/1000) + 's'
+            + ' step '+ (this.ts_step/1000) + 's'
+            + ' frames ' + total_frames
+            + ' timescale '+$('#time_scale').val());
         }
         var d=new Date(this.ts_cur);
         if(frame%this.info_update_frames == 0) {
           $('#cur_time').html(d.toLocaleString());
         }
         this.update_features_for_time(this.ts_cur);
-        this.ts_cur += ts_step;
+        this.ts_cur += this.ts_step;
         if(this.ts_cur > this.t_end.getTime()) {
+          this.infomsg('done');
           this.stop_animation();
         }
         frame++;
       },this),1000/this.target_fps);
   },
-  update_animation_values() {
-    if(this.timer) {
+  update_animation_values:function() {
+    if(this.timer !== null) {
       this.stop_animation();
       this.start_animation();
     }
   },
+  get_fade_duration() {
+    return this.ts_step * this.target_fps * this.fade_seconds;
+  },
   update_time_scale:function() {
     this.update_animation_values();
     $('#time_scale_display').html($('#time_scale').val());
+  },
+  multiply_time_scale(factor) {
+      var v=$('#time_scale').val()*factor;
+      if(v > $('#time_scale').attr('max')) {
+        v = $('#time_scale').attr('max');
+      } else if(v < $('#time_scale').attr('min')) {
+        v = $('#time_scale').attr('min');
+      }
+      $('#time_scale').val(v);
+      this.update_time_scale();
+  },
+  update_fade_time:function() {
+    this.fade_seconds = $('#fade_time').val();
+    if(this.fade_seconds > 0) {
+      $('#fade_time_display').html(this.fade_seconds + 's');
+    } else {
+      $('#fade_time_display').html('off');
+    }
   },
   change_source:function() {
     this.stop_animation();
@@ -218,7 +273,21 @@ var EQPlay={
     $('#btn_stop').click($.proxy(this.reset_animation,this));
     $('#sel_src').change($.proxy(this.change_source,this));
     $('#time_scale').change($.proxy(this.update_time_scale,this));
+    $('#time_scale_x10').click($.proxy(function() {
+      this.multiply_time_scale(10);
+    },this));
+    $('#time_scale_x2').click($.proxy(function() {
+      this.multiply_time_scale(2);
+    },this));
+    $('#time_scale_x01').click($.proxy(function() {
+      this.multiply_time_scale(0.1);
+    },this));
+    $('#time_scale_x05').click($.proxy(function() {
+      this.multiply_time_scale(0.5);
+    },this));
+    $('#fade_time').change($.proxy(this.update_fade_time,this));
     this.update_time_scale();
+    this.update_fade_time();
     this.get_data();
   }
 };
