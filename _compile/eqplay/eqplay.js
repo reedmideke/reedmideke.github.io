@@ -162,10 +162,10 @@ var EQPlay={
         image: new CircleStyle({
           radius: r,
           fill: new Fill({
-            color: 'rgba(255, 0, 0, '+alpha+')'
+            color: [255, 0, 0, alpha ]
           }),
           stroke: new Stroke({
-            color: 'rgba(255, 128, 0, '+(alpha*0.8)+')',
+            color: [255, 128, 0, alpha*0.8],
             width: 1
           })
         })
@@ -174,13 +174,17 @@ var EQPlay={
     }
     return style;
   },
-  update_features_for_time:function(t) {
+  update_features_for_time:function() {
     var eq;
     var i;
     var f;
     var style;
     var to_add=[];
     var alpha;
+    var t=this.ts_cur;
+    if(!this.eqdata) {
+      return;
+    }
     for(i=0;i<this.eqdata.features.length;i++) {
       eq=this.eqdata.features[i];
       f=this.vsource.getFeatureById(i);
@@ -221,7 +225,7 @@ var EQPlay={
     if(this.eqdata) {
       this.ts_cur = this.t_start.getTime();
       this.update_cur_time_display();
-      this.update_features_for_time(this.ts_cur);
+      this.update_features_for_time();
     }
 
   },
@@ -242,7 +246,7 @@ var EQPlay={
         if(frame%this.info_update_frames == 0) {
           this.update_cur_time_display();
         }
-        this.update_features_for_time(this.ts_cur);
+        this.update_features_for_time();
         this.ts_cur += this.ts_step;
         if(this.ts_cur > this.t_end.getTime()) {
           this.infomsg('done');
@@ -298,6 +302,7 @@ var EQPlay={
     } else {
       $('#fade_time_display').html('off');
     }
+    this.update_features_for_time();
   },
   update_tz_info:function() {
     this.update_data_info();
