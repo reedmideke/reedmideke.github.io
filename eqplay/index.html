@@ -23,6 +23,21 @@ Probably. <a href="https://twitter.com/reedmideke">Tweet me</a>?
 
 <div id="map" class="map" style="width:100%;height:70vh;min-height:400px;margin-top:2em;"></div>
 <div id="controls" style="margin-top:1em">
+<div>
+Time: <span id="cur_time" style="display:inline-block;min-width:16em">-</span> Speed: <span id="time_scale_display"></span>
+<input style="display:block;width:100%;" id="time_line" type="range" min="0" max="10000" value="0" />
+</div>
+<button id="btn_play" type="button">▶ Play</button>
+<button id="btn_pause" type="button">⏸ Pause</button>
+<button id="btn_stop" type="button">■ Stop</button>
+Speed X
+<button id="time_scale_x2" type="button">2</button>
+<button id="time_scale_x10" type="button">10</button>
+<button id="time_scale_x05" type="button">0.5</button>
+<button id="time_scale_x01" type="button">0.1</button>
+<input id="time_scale" type="range" min="60" max="60000" value="7200" />
+
+<div id="config" style="margin-top:1em">
 <label for="sel_src">Data source:</label>
 <select id="sel_src">
   <option value="/assets/json/20190707-2122-2.5_week.geojson.json">M2.5+ Week ending Jul 7 2019</option>
@@ -38,25 +53,23 @@ Probably. <a href="https://twitter.com/reedmideke">Tweet me</a>?
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson">M2.5+ Earthquakes Past 30 days</option>
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.geojson">M1.0+ Earthquakes Past 30 days</option>
 </select>
+<div>
+Data info: Start <span id="data_start_date">-</span> End <span id="data_end_date">-</span> Total quakes <span id="data_quake_count">-</span>
+</div>
 <br />
-<label for="time_scale">Time scale :</label>
-<input id="time_scale" type="range" min="60" max="60000" value="7200" /> <span id="time_scale_display"></span>x real time
-<button id="time_scale_x2" type="button">x2</button>
-<button id="time_scale_x10" type="button">x10</button>
-<button id="time_scale_x05" type="button">x0.5</button>
-<button id="time_scale_x01" type="button">x0.1</button>
+Display options:
 <br />
-<label for="fade_time">Fade time (seconds, 0 = no fade) :</label>
+<label for="fade_time">Fade time (seconds, 0 = off) :</label>
 <input id="fade_time" type="range" min="0" max="60" value="0" /> <span id="fade_time_display"></span>
 <br />
-<button id="btn_play" type="button">▶ Play</button>
-<button id="btn_pause" type="button">⏸ Pause</button>
-<button id="btn_stop" type="button">■ Stop</button>
-<div>
-Time: <span id="cur_time">-</span>
-</div>
+<label for="sel_tz">Time zone:</label>
+<select id="sel_tz">
+  <option value="browser">Browser</option>
+  <option value="UTC">UTC</option>
+</select>
+<br />
 <div style="margin-top:1em">
-Status:
+Status messages:
 </div>
 <div id="status" style="height:10em;overflow-y:scroll">
 </div>
