@@ -124,6 +124,27 @@ var EQPlay={
     }
     return d.toLocaleString('default',{timeZone:'UTC',hour12:false});
   },
+  fmt_ms_hhmmss:function(ms) {
+    var s=(ms/1000)%60;
+    var m=(ms/(1000*60))%60;
+    var h=Math.floor(ms/(1000*60*60));
+    if(s < 10) {
+      s=':0'+s;
+    } else {
+      s=':'+s;
+    }
+    if(m < 10) {
+      m=':0'+m;
+    } else {
+      m=':'+m;
+    }
+    var str=h+m+s;
+    if(h < 10) {
+      str = '0' + str;
+    }
+    // FP can leave decimals
+    return str.replace(/\.\d+/,'');
+  },
   update_data_info:function() {
     if(!this.eqdata) {
       $('#data_start_date').html('-');
@@ -234,6 +255,10 @@ var EQPlay={
         this.infomsg('no data loaded');
         return;
       }
+      if(this.timer) {
+        this.infomsg('already playing');
+        return;
+      }
       this.vsource.clear(true);
       if(!this.ts_cur || this.ts_cur < this.t_start.getTime() || this.ts_cur >= this.t_end.getTime()) {
         this.ts_cur = this.t_start.getTime();
@@ -283,6 +308,7 @@ var EQPlay={
   update_time_scale:function() {
     this.update_animation_values();
     this.ts_step = $('#time_scale').val() * 1000 / this.target_fps;
+    this.update_fade_time();
     $('#time_scale_display').html($('#time_scale').val());
   },
   multiply_time_scale(factor) {
@@ -298,7 +324,7 @@ var EQPlay={
   update_fade_time:function() {
     this.fade_seconds = $('#fade_time').val();
     if(this.fade_seconds > 0) {
-      $('#fade_time_display').html(this.fade_seconds + 's');
+      $('#fade_time_display').html(this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.get_fade_duration()));
     } else {
       $('#fade_time_display').html('off');
     }
@@ -319,9 +345,8 @@ var EQPlay={
     }
     return this.t_start.getTime() + (this.t_total_ms * frac);
   },
-  time_warp:function() {
+  time_warp_to:function(t) {
     if(!this.eqdata) {
-      $('#time_line').val(0);
       return;
     }
     var was_playing;
@@ -329,13 +354,28 @@ var EQPlay={
       was_playing=true;
     }
     this.stop_animation();
-    this.ts_cur = this.frac_to_ts($('#time_line').val()/this.time_line_scale);
+    if(t < this.t_start.getTime()) {
+      t=this.t_start.getTime();
+    } else if(t > this.t_end.getTime()) {
+      t=this.t_end.getTime();
+    }
+    this.ts_cur = t;
     if(was_playing) {
       this.start_animation();
     } else {
       this.update_cur_time_display();
       this.update_features_for_time(this.ts_cur);
     }
+  },
+  time_warp:function() {
+    if(!this.eqdata) {
+      $('#time_line').val(0);
+      return;
+    }
+    this.time_warp_to(this.frac_to_ts($('#time_line').val()/this.time_line_scale));
+  },
+  time_step:function(step) {
+    this.time_warp_to(this.ts_cur + this.target_fps*step*this.ts_step);
   },
   onready:function() {
     $('#btn_play').click($.proxy(this.start_animation,this));
@@ -358,6 +398,24 @@ var EQPlay={
     $('#fade_time').change($.proxy(this.update_fade_time,this));
     $('#sel_tz').change($.proxy(this.update_tz_info,this));
     $('#time_line').change($.proxy(this.time_warp,this));
+    $('#btn_step_n10').click($.proxy(function() {
+      this.time_step(-10);
+    },this));
+    $('#btn_step_n1').click($.proxy(function() {
+      this.time_step(-1);
+    },this));
+    $('#btn_step_n01').click($.proxy(function() {
+      this.time_step(-0.1);
+    },this));
+    $('#btn_step_01').click($.proxy(function() {
+      this.time_step(0.1);
+    },this));
+    $('#btn_step_1').click($.proxy(function() {
+      this.time_step(1);
+    },this));
+    $('#btn_step_10').click($.proxy(function() {
+      this.time_step(10);
+    },this));
     this.time_line_scale=$('#time_line').attr('max');
     this.update_time_scale();
     this.update_fade_time();
