@@ -176,18 +176,30 @@ var EQPlay={
   get_eq_style:function(eq,alpha) {
     // butchered from
     // https://openlayers.org/en/latest/examples/kml-earthquakes.html
-    var r = eq.properties.mag*2; // pixels? mags seem to be 2 decimal places
+    var r=this.marker_base_rad;
+    if(this.marker_do_scale_mag) {
+      r = r*eq.properties.mag; // mags seem to be 1 decimal place so not too many unique values
+    }
     var style_key = r + '_' + alpha;
     var style=this.style_cache[style_key];
+    var fill_color;
+    var stroke_color;
+
     if(!style) {
+
+      // clone the arrays before setting colors
+      fill_color=this.marker_fill_color.slice(0);
+      stroke_color=this.marker_stroke_color.slice(0);
+      stroke_color[3]=alpha;
+      fill_color[3]=alpha*0.8;
       style = new Style({
         image: new CircleStyle({
           radius: r,
           fill: new Fill({
-            color: [255, 0, 0, alpha ]
+            color: fill_color
           }),
           stroke: new Stroke({
-            color: [255, 128, 0, alpha*0.8],
+            color: stroke_color,
             width: 1
           })
         })
@@ -235,6 +247,14 @@ var EQPlay={
       }
     }
     this.vsource.addFeatures(to_add);
+  },
+  update_features_full:function() {
+    if(!this.eqdata) {
+      return;
+    }
+    this.style_cache = {};
+    this.vsource.clear(true);
+    this.update_features_for_time();
   },
   stop_animation:function() {
     if(this.timer) {
@@ -380,7 +400,7 @@ var EQPlay={
       this.start_animation();
     } else {
       this.update_cur_time_display();
-      this.update_features_for_time(this.ts_cur);
+      this.update_features_for_time();
     }
   },
   time_warp:function() {
@@ -392,6 +412,26 @@ var EQPlay={
   },
   time_step:function(step) {
     this.time_warp_to(this.ts_cur + this.target_fps*step*this.ts_step);
+  },
+  color_to_rgb:function(c) {
+    // https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+    var parts = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
+    return parts ? [
+      parseInt(parts[1], 16),
+      parseInt(parts[2], 16),
+      parseInt(parts[3], 16)
+    ] : null;
+  },
+  update_marker_colors:function() {
+    this.marker_fill_color=this.color_to_rgb($('#marker_fill_color').val());
+    this.marker_stroke_color=this.color_to_rgb($('#marker_stroke_color').val());
+    this.update_features_full();
+  },
+  update_marker_scale:function() {
+    this.marker_base_rad = $('#marker_base_rad').val();
+    $('#marker_base_rad_disp').html(this.marker_base_rad*2);
+    this.marker_do_scale_mag = $('#marker_do_scale_mag:checked').length > 0;
+    this.update_features_full();
   },
   onready:function() {
     $('#btn_play').click($.proxy(function() {
@@ -437,9 +477,16 @@ var EQPlay={
     $('#btn_step_10').click($.proxy(function() {
       this.time_step(10);
     },this));
+    $('#marker_fill_color').change($.proxy(this.update_marker_colors,this));
+    $('#marker_stroke_color').change($.proxy(this.update_marker_colors,this));
+    $('#marker_do_scale_mag').change($.proxy(this.update_marker_scale,this));
+    $('#marker_base_rad').change($.proxy(this.update_marker_scale,this));
     this.time_line_scale=$('#time_line').attr('max');
+    // these inits may try to clear / re-render, do BEFORE first get_data()
     this.update_time_scale();
     this.update_fade_time();
+    this.update_marker_colors();
+    this.update_marker_scale();
     this.get_data();
   }
 };

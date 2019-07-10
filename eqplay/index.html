@@ -69,10 +69,15 @@ Speed
 Data info: Start <span id="data_start_date">-</span> End <span id="data_end_date">-</span> Total quakes <span id="data_quake_count">-</span>
 </div>
 <br />
-Display options:
+Marker options:
 <br />
 <label for="fade_time">Fade time:</label>
 <input id="fade_time" type="range" min="0" max="60" value="0" /> <span id="fade_time_display"></span>
+<br />
+Base color: <label for="marker_fill_color">Fill</label> <input id="marker_fill_color" type="color" value="#ff0000" /> <label for="market_stroke_color">Outline</label> <input id="marker_stroke_color" type="color" value="#ff8000" />
+<br />
+Base size <input style="width:4em" id="marker_base_rad" type="range" min="1" max="4" value="2" /> <span id="marker_base_rad_disp"></span> <label for="marker_do_scale_mag">Scale for M</label> <input id="marker_do_scale_mag" type="checkbox" checked />
+
 <br />
 <label for="sel_tz">Time zone:</label>
 <select id="sel_tz">
