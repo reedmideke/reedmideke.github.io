@@ -236,10 +236,11 @@ var EQPlay={
     this.vsource.addFeatures(to_add);
   },
   stop_animation:function() {
-      if(this.timer) {
-        clearInterval(this.timer);
-        this.timer=null;
-      }
+    if(this.timer) {
+      clearInterval(this.timer);
+      this.timer=null;
+    }
+    this.update_play_pause();
   },
   reset_animation:function() {
     this.stop_animation();
@@ -248,37 +249,46 @@ var EQPlay={
       this.update_cur_time_display();
       this.update_features_for_time();
     }
-
   },
   start_animation:function() {
-      if(this.eqdata === null) {
-        this.infomsg('no data loaded');
-        return;
+    if(this.eqdata === null) {
+      this.infomsg('no data loaded');
+      return;
+    }
+    if(this.timer) {
+      this.infomsg('already playing');
+      return;
+    }
+    this.vsource.clear(true);
+    if(!this.ts_cur || this.ts_cur < this.t_start.getTime() || this.ts_cur >= this.t_end.getTime()) {
+      this.ts_cur = this.t_start.getTime();
+    }
+    var frame=0;
+    this.timer=setInterval($.proxy(function() {
+      if(frame == 0) {
+        this.infomsg('start');
       }
-      if(this.timer) {
-        this.infomsg('already playing');
-        return;
+      if(frame%this.info_update_frames == 0) {
+        this.update_cur_time_display();
       }
-      this.vsource.clear(true);
-      if(!this.ts_cur || this.ts_cur < this.t_start.getTime() || this.ts_cur >= this.t_end.getTime()) {
-        this.ts_cur = this.t_start.getTime();
+      this.update_features_for_time();
+      this.ts_cur += this.ts_step;
+      if(this.ts_cur > this.t_end.getTime()) {
+        this.infomsg('done');
+        this.stop_animation();
       }
-      var frame=0;
-      this.timer=setInterval($.proxy(function() {
-        if(frame == 0) {
-          this.infomsg('start');
-        }
-        if(frame%this.info_update_frames == 0) {
-          this.update_cur_time_display();
-        }
-        this.update_features_for_time();
-        this.ts_cur += this.ts_step;
-        if(this.ts_cur > this.t_end.getTime()) {
-          this.infomsg('done');
-          this.stop_animation();
-        }
-        frame++;
-      },this),1000/this.target_fps);
+      frame++;
+    },this),1000/this.target_fps);
+    this.update_play_pause();
+  },
+  update_play_pause() {
+    if(this.timer !== null) {
+      $('#txt_play').hide();
+      $('#txt_pause').show();
+    } else {
+      $('#txt_pause').hide();
+      $('#txt_play').show();
+    }
   },
   update_animation_values:function() {
     if(this.timer !== null) {
@@ -324,7 +334,7 @@ var EQPlay={
   update_fade_time:function() {
     this.fade_seconds = $('#fade_time').val();
     if(this.fade_seconds > 0) {
-      $('#fade_time_display').html(this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.get_fade_duration()));
+      $('#fade_time_display').html('animation ' + this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.get_fade_duration()));
     } else {
       $('#fade_time_display').html('off');
     }
@@ -378,8 +388,13 @@ var EQPlay={
     this.time_warp_to(this.ts_cur + this.target_fps*step*this.ts_step);
   },
   onready:function() {
-    $('#btn_play').click($.proxy(this.start_animation,this));
-    $('#btn_pause').click($.proxy(this.stop_animation,this));
+    $('#btn_play').click($.proxy(function() {
+      if(this.timer) {
+        this.stop_animation();
+      } else {
+        this.start_animation();
+      }
+    },this));
     $('#btn_stop').click($.proxy(this.reset_animation,this));
     $('#sel_src').change($.proxy(this.change_source,this));
     $('#time_scale').change($.proxy(this.update_time_scale,this));
