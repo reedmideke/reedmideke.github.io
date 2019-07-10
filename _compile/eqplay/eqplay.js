@@ -65,9 +65,10 @@ var EQPlay={
     $('#status').append('<div class="info-msg">'+msg+'</div>');
     $('#status').scrollTop($('#status').height());
   },
-  get_data:function() {
+  get_data:function(dataurl,cust_params) {
     this.stop_animation();
-    var dataurl=$('#sel_src').val();
+    this.clear_data();
+    console.log('get',dataurl);
     // this should probably just use openlayers native stuff
     var req=$.ajax({
       url:dataurl,
@@ -78,21 +79,29 @@ var EQPlay={
         this.infomsg('Loaded '+data.features.length+' earthquakes from ' +dataurl);
         var days;
         var metaurl=data.metadata.url;
-        // TODO hacky
-        if(metaurl.match(/_week\.geojson$/)) {
-          days=7;
-        } else if(metaurl.match(/_day\.geojson$/)) {
-          days=1;
-        } else if(metaurl.match(/_month\.geojson$/)) {
-          days=30;
+        if(cust_params) {
+          this.t_start=cust_params.t_start;
+          this.t_end=cust_params.t_end;
+          if(data.features.length == cust_params.limit_count) {
+            this.infomsg('Max results limit hit');
+          }
         } else {
-          this.infomsg('failed to detect time range');
-          this.clear_data();
-          return;
+          // TODO hacky
+          if(metaurl.match(/_week\.geojson$/)) {
+            days=7;
+          } else if(metaurl.match(/_day\.geojson$/)) {
+            days=1;
+          } else if(metaurl.match(/_month\.geojson$/)) {
+            days=30;
+          } else {
+            this.infomsg('failed to detect time range');
+            this.clear_data();
+            return;
+          }
+          this.t_end = new Date(data.metadata.generated);
+          this.t_start = new Date(data.metadata.generated-(days*24*60*60*1000));
         }
         this.eqdata=data;
-        this.t_end = new Date(this.eqdata.metadata.generated);
-        this.t_start = new Date(this.eqdata.metadata.generated-(days*24*60*60*1000));
         this.t_total_ms = this.t_end.getTime() - this.t_start.getTime();
         this.ts_cur = this.t_start.getTime();
         this.infomsg('Date range '+this.fmt_date(this.t_start)+' - ' +this.fmt_date(this.t_end));
@@ -186,7 +195,6 @@ var EQPlay={
     var stroke_color;
 
     if(!style) {
-
       // clone the arrays before setting colors
       fill_color=this.marker_fill_color.slice(0);
       stroke_color=this.marker_stroke_color.slice(0);
@@ -371,9 +379,78 @@ var EQPlay={
     this.update_cur_time_display();
   },
   change_source:function() {
-    this.stop_animation();
-    this.clear_data();
-    this.get_data();
+    var sel=$('#sel_src').val();
+    console.log(sel);
+    if(sel === 'custom') {
+      $('#cust_src_inputs').show();
+    } else {
+      $('#cust_src_inputs').hide();
+      this.get_data(sel);
+    }
+  },
+  get_date_input:function(pfx) {
+    var datestr=$('#'+pfx+'_date').val();
+    if(!datestr) {
+      return null;
+    }
+    var h=$('#'+pfx+'_h').val();
+    if(h < 0 || h > 23) {
+      return null;
+    }
+    var m=$('#'+pfx+'_m').val();
+    if(m < 0 || m > 59) {
+      return null;
+    }
+    // TODO throws error
+    var d=new Date(datestr);// initial e.g 2019-02-28, UTC
+    console.log('d1',d.toString(),h,m);
+    if(!d) {
+      return null;
+    }
+    d.setHours(h);
+    d.setMinutes(m);
+    console.log('d2',d.toString());
+    // TODO handle local
+    return d;
+  },
+  get_cust_data:function() {
+    // API documentation at https://earthquake.usgs.gov/fdsnws/event/1/
+    var url='https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?';
+    var t_start=this.get_date_input('cust_start');
+    if(!t_start) {
+      this.infomsg('invalid start date/time');
+      return;
+    }
+    url += 'starttime='+t_start.toISOString();
+    // TODO should be optional (=now)
+    var t_end=this.get_date_input('cust_end');
+    if(!t_end) {
+      this.infomsg('invalid end date/time');
+      return;
+    }
+    url += '&endtime='+t_end.toISOString();
+    var m_min=$('#cust_mag_min').val();
+    if(m_min < 1 || m_min > 10) {
+      this.infomsg('invalid min mag '+m_min);
+      return;
+    }
+    url += '&minmagnitude='+m_min;
+    var m_max=$('#cust_mag_max').val();
+    // optional
+    if(m_max) {
+      if(m_max < m_min) {
+        this.infomsg('invalid max mag '+m_max+' < min '+m_min);
+      }
+      url += '&maxmagnitude='+m_max;
+    }
+    var limit_count = $('#cust_limit_count').val();
+    if(limit_count < 1 || limit_count > 20000) {
+      this.infomsg('invalid limit count '+limit_count);
+      return;
+    }
+    url += '&limit='+limit_count;
+    this.infomsg('custom query url: '+url);
+    this.get_data(url,{t_start:t_start,t_end:t_end,limit:limit_count});
   },
   frac_to_ts:function(frac) {
     if(!this.t_start) {
@@ -443,6 +520,7 @@ var EQPlay={
     },this));
     $('#btn_stop').click($.proxy(this.reset_animation,this));
     $('#sel_src').change($.proxy(this.change_source,this));
+    $('#btn_cust_get').click($.proxy(this.get_cust_data,this));
     $('#time_scale').change($.proxy(this.update_time_scale,this));
     $('#time_scale_x10').click($.proxy(function() {
       this.multiply_time_scale(10);
@@ -487,7 +565,7 @@ var EQPlay={
     this.update_fade_time();
     this.update_marker_colors();
     this.update_marker_scale();
-    this.get_data();
+    this.change_source();
   }
 };
 EQPlay.init();
