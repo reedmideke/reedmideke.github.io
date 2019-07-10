@@ -319,7 +319,8 @@ var EQPlay={
     this.update_animation_values();
     this.ts_step = $('#time_scale').val() * 1000 / this.target_fps;
     this.update_fade_time();
-    $('#time_scale_display').html($('#time_scale').val());
+    $('#time_scale_disp_x').html($('#time_scale').val());
+    $('#time_scale_disp_t').html(this.fmt_ms_hhmmss(this.ts_step*this.target_fps));
   },
   multiply_time_scale(factor) {
       var v=$('#time_scale').val()*factor;

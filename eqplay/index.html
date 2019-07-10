@@ -24,12 +24,14 @@ Probably. <a href="https://twitter.com/reedmideke">Tweet me</a>?
 <div id="map" class="map" style="width:100%;height:70vh;min-height:400px;margin-top:2em;"></div>
 <div id="controls" style="margin-top:1em">
 <div>
-Time: <span id="cur_time" style="display:inline-block;min-width:16em">-</span> Speed: <span id="time_scale_display"></span>
+Time: <span id="cur_time" style="display:inline-block;min-width:12em">-</span>
+Speed: <span id="time_scale_disp_x" style="text-align:right;display:inline-block;min-width:3em"></span>x
+ <span id="time_scale_disp_t" style="text-align:right;display:inline-block;min-width:5em"></span>/s
 <input style="display:block;width:100%;" id="time_line" type="range" min="0" max="10000" value="0" />
 </div>
 <button id="btn_play" style="min-width:6em;display:inline-block" type="button"><span id="txt_play">▶ Play</span><span style="display:none" id="txt_pause">⏸ Pause</span></button>
 <button id="btn_stop" style="min-width:6em;display:inline-block" type="button">■ Stop</button>
-Step
+<span style="padding-left:1em;">Step</span>
 <button id="btn_step_n10" type="button">-10</button>
 <button id="btn_step_n1" type="button">-1</button>
 <button id="btn_step_n01" type="button">-0.1</button>
@@ -39,7 +41,7 @@ Step
 <br />
 Speed
 <input id="time_scale" type="range" min="60" max="60000" value="7200" />
-multiply X
+<span style="padding-left:1em;">Speed X</span>
 <button id="time_scale_x01" type="button">0.1</button>
 <button id="time_scale_x05" type="button">0.5</button>
 <button id="time_scale_x2" type="button">2</button>
