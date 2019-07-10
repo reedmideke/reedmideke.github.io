@@ -63,6 +63,7 @@ var EQPlay={
   },
   infomsg:function(msg) {
     $('#status').append('<div class="info-msg">'+msg+'</div>');
+    $('#status').scrollTop($('#status').height());
   },
   get_data:function() {
     this.stop_animation();
@@ -240,6 +241,7 @@ var EQPlay={
       clearInterval(this.timer);
       this.timer=null;
     }
+    this.update_cur_time_display();
     this.update_play_pause();
   },
   reset_animation:function() {
@@ -276,6 +278,9 @@ var EQPlay={
       if(this.ts_cur > this.t_end.getTime()) {
         this.infomsg('done');
         this.stop_animation();
+        if($('#chk_loop:checked').length) {
+          this.start_animation();
+        }
       }
       frame++;
     },this),1000/this.target_fps);
