@@ -167,7 +167,7 @@ var EQPlay={
     if(!d) {
       return '-';
     }
-    if($('#sel_tz').val() == 'browser') {
+    if(this.tz == 'browser') {
       return d.toLocaleString();
     }
     return d.toLocaleString('default',{timeZone:'UTC',hour12:false});
@@ -413,6 +413,12 @@ var EQPlay={
     this.update_features_for_time();
   },
   update_tz_info:function() {
+    this.tz = $('#sel_tz').val();
+    if(this.tz == 'browser') {
+      $('.tz_disp').html('Browser timezone');
+    } else {
+      $('.tz_disp').html('UTC');
+    }
     this.update_data_info();
     this.update_cur_time_display();
   },
@@ -438,6 +444,12 @@ var EQPlay={
       }
       return null;
     }
+    var dparts = datestr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(dparts.length != 4) {
+      this.infomsg('failed to parse date ' + datestr);
+      return null;
+    }
+
     var hstr=$('#'+opts.id+'_h').val();
     if(hstr === '' && typeof opts.def_h != 'undefined') {
       hstr=opts.def_h;
@@ -467,14 +479,15 @@ var EQPlay={
     }
     var d;
     try {
-      d=new Date(datestr);// initial e.g 2019-02-28, UTC
+      if(this.tz == 'browser') {
+        d=new Date(dparts[1],dparts[2]-1,dparts[3],h,m);
+      } else {
+        d=new Date(Date.UTC(dparts[1],dparts[2]-1,dparts[3],h,m));
+      }
     } catch(err) {
-      this.infomsg('failed to parse date ' + err);
+      this.infomsg('failed to create date ' + err);
       return null;
     }
-    d.setUTCHours(h);
-    d.setUTCMinutes(m);
-    // TODO handle local vs UTC
     return d;
   },
   get_cust_data:function() {
@@ -636,6 +649,7 @@ var EQPlay={
     this.update_fade_time();
     this.update_marker_colors();
     this.update_marker_scale();
+    this.update_tz_info();
     this.change_source();
   }
 };
