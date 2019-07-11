@@ -6,11 +6,15 @@ headincludes:
 ---
 <b>What is this?</b>
 <p>
-A tool to replay earthquake series from USGS <a href="https://earthquake.usgs.gov/earthquakes/feed/">earthquake feeds</a> or some locally hosted files featuring the July 2019 Ridgecrest quakes. Built using <a href="https://openlayers.org">OpenLayers</a>.
+A tool to replay earthquake series from USGS <a href="https://earthquake.usgs.gov/earthquakes/feed/">earthquake feeds</a>,
+<a href="https://earthquake.usgs.gov/earthquakes/search/">catalog search</a>, user specified GeoJSON URLs,
+or locally hosted files featuring the July 2019 Ridgecrest quakes.
+<br />
+Built using <a href="https://openlayers.org">OpenLayers</a>. Data courtesy USGS. Bugs by me.
 </p>
 <b>How do I use it?</b>
 <p>
-Scroll down to the <a href="#controls">controls</a>, pick your poison and hit Play.
+Scroll down to the <a href="#controls">controls</a>, pick your poison and hit Play. Using Chrome or Firefox is suggested.
 </p>
 <b>I wish it did something different. Can I modify it?</b>
 <p>
@@ -52,9 +56,9 @@ Speed
 <div id="config" style="margin-top:1em">
 <label for="sel_src">Data source:</label>
 <select id="sel_src">
-  <option selected value="/assets/json/20190707-2122-2.5_week.geojson.json">M2.5+ Week ending Jul 7 2019</option>
-  <option value="/assets/json/20190707-2122-4.5_week.geojson.json">M4.5+ Week ending Jul 7 2019</option>
-  <option value="/assets/json/20190707-2122-1.0_week.geojson.json">M1.0+ Week ending Jul 7 2019</option>
+  <option selected value="/assets/json/20190711-0000-2.5_week.geojson.json">M2.5+ Ridgecrest Week from July 4</option>
+  <option value="/assets/json/20190711-0000-4.5_week.geojson.json">M4.5+ Ridgecrest Week from July 4</option>
+  <option value="/assets/json/20190711-0000-1.0_week.geojson.json">M1.0+ Ridgecrest Week from July 4</option>
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson">M4.5+ Earthquakes Past Day</option>
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">M2.5+ Earthquakes Past Day</option>
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.geojson">M1.0+ Earthquakes Past Day</option>
