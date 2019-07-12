@@ -70,8 +70,9 @@ Speed
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.geojson">M1.0+ Earthquakes Past 30 days</option>
   <option value="usgs-query">USGS database custom query</option>
   <option value="user-url">User specified URL</option>
+  <option value="user-file">User local file</option>
 </select>
-<div style="display:none" id="usgs_query_inputs">
+<div style="display:none" class="cust-src-settings" id="usgs_query_inputs">
 Start <input type="date" id="cust_start_date" />
 <input type="text" maxlength="2" size="1" id="cust_start_h" />
 : <input type="text" maxlength="2" size="1" id="cust_start_m" min="0" max="59" /> <span class="tz_disp"></span>
@@ -87,7 +88,7 @@ End <input type="date" id="cust_end_date" />
 <br />
 <button id="btn_cust_get">Load data</button>
 </div>
-<div style="display:none" id="user_url_inputs">
+<div style="display:none" class="cust-src-settings" id="user_url_inputs">
 Enter URL of GeoJSON source compatible with <a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php">USGS GeoJSON summary format</a>.
 <br />
 NOTE: Minimal validation, time range set from first/last events, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">CORS</a> must be permitted.
@@ -95,6 +96,13 @@ NOTE: Minimal validation, time range set from first/last events, <a href="https:
 <input type="text" size="100" id="user_data_url" />
 <br />
 <button id="btn_user_url_get">Load data</button>
+</div>
+<div style="display:none" class="cust-src-settings" id="user_file_inputs">
+Select a GeoJSON file compatible with <a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php">USGS GeoJSON summary format</a>.
+<br />
+NOTE: Minimal validation, time range set from first/last events.
+<br />
+<input type="file" id="user_data_file" />
 </div>
 <div>
 Data info: Start <span id="data_start_date">-</span> End <span id="data_end_date">-</span> Total quakes <span id="data_quake_count">-</span>

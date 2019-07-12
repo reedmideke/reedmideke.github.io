@@ -98,14 +98,15 @@ var EQPlay={
       var i_last = 0;
       for(i=0;i<features.length;i++) {
         if(features[i_first].properties.time > features[i].properties.time) {
-          i_first==i;
+          i_first=i;
         }
         if(features[i_last].properties.time < features[i].properties.time) {
-          i_last==i;
+          i_last=i;
         }
       }
       this.i_first = i_first;
       this.i_last = i_last;
+      console.log('first',i_first,'last',i_last);
       var eq_first = features[i_first];
       var eq_last = features[i_last];
 
@@ -133,7 +134,7 @@ var EQPlay={
         }
       }
       if(this.t_start === null) {
-        if(opts.type != 'user-url') {
+        if(opts.type != 'user-url' && opts.type != 'user-file') {
           this.warnmsg('failed to detect start/end, using event times');
         }
         if(eq_first.properties.time == eq_last.properties.time) {
@@ -256,7 +257,9 @@ var EQPlay={
     // https://openlayers.org/en/latest/examples/kml-earthquakes.html
     var r=this.marker_base_rad;
     if(this.marker_do_scale_mag) {
-      r = r*eq.properties.mag; // mags seem to be 1 decimal place so not too many unique values
+      if(eq.properties.mag > 1) {
+        r = r*eq.properties.mag; // mags seem to be 1 decimal place so not too many unique values
+      }
     }
     var style_key = r + '_' + alpha;
     var style=this.style_cache[style_key];
@@ -456,14 +459,16 @@ var EQPlay={
   change_source:function() {
     var sel=$('#sel_src').val();
     if(sel === 'usgs-query') {
+      $('.cust-src-settings').not('#usgs_query_inputs').hide();
       $('#usgs_query_inputs').show();
-      $('#user_url_inputs').hide();
     } else if(sel === 'user-url') {
-      $('#usgs_query_inputs').hide();
+      $('.cust-src-settings').not('#user_url_inputs').hide();
       $('#user_url_inputs').show();
+    } else if(sel === 'user-file') {
+      $('.cust-src-settings').not('#user_file_inputs').hide();
+      $('#user_file_inputs').show();
     } else {
-      $('#usgs_query_inputs').hide();
-      $('#user_url_inputs').hide();
+      $('.cust-src-settings').hide();
       this.get_data({dataurl:sel,type:'feed-url'});
     }
   },
@@ -477,7 +482,7 @@ var EQPlay={
     }
     var dparts = datestr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if(dparts.length != 4) {
-      this.infomsg('failed to parse date ' + datestr);
+      this.errmsg('failed to parse date ' + datestr);
       return null;
     }
 
@@ -487,11 +492,11 @@ var EQPlay={
     }
     var h=parseInt(hstr,10);
     if(isNaN(h)) {
-      this.infomsg('failed to parse hour ' + hstr);
+      this.errmsg('failed to parse hour ' + hstr);
       return null;
     }
     if(h < 0 || h > 23) {
-      this.infomsg('invalid hour ' + h);
+      this.errmsg('invalid hour ' + h);
       return null;
     }
     var mstr=$('#'+opts.id+'_m').val();
@@ -500,12 +505,12 @@ var EQPlay={
     }
     var m=parseInt(mstr,10);
     if(isNaN(m)) {
-      this.infomsg('failed to parse minute ' + mstr);
+      this.errmsg('failed to parse minute ' + mstr);
       return null;
     }
 
     if(m < 0 || m > 59) {
-      this.infomsg('invalid minute ' + mstr);
+      this.errmsg('invalid minute ' + mstr);
       return null;
     }
     var d;
@@ -516,7 +521,7 @@ var EQPlay={
         d=new Date(Date.UTC(dparts[1],dparts[2]-1,dparts[3],h,m));
       }
     } catch(err) {
-      this.infomsg('failed to create date ' + err);
+      this.errmsg('failed to create date ' + err);
       return null;
     }
     return d;
@@ -526,7 +531,7 @@ var EQPlay={
     var url='https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?';
     var t_start=this.get_date_input({id:'cust_start',def_h:0,def_m:0});
     if(!t_start) {
-      this.infomsg('invalid start date/time');
+      this.errmsg('invalid start date/time');
       return;
     }
     url += 'starttime='+t_start.toISOString();
@@ -536,7 +541,7 @@ var EQPlay={
     url += '&endtime='+t_end.toISOString();
     var m_min=$('#cust_mag_min').val();
     if(m_min < 1 || m_min > 10) {
-      this.infomsg('invalid min mag '+m_min);
+      this.errmsg('invalid min mag '+m_min);
       return;
     }
     url += '&minmagnitude='+m_min;
@@ -544,14 +549,14 @@ var EQPlay={
     // optional
     if(m_max !== '') {
       if(m_max < m_min) {
-        this.infomsg('invalid max mag '+m_max+' < min '+m_min);
+        this.errmsg('invalid max mag '+m_max+' < min '+m_min);
         return;
       }
       url += '&maxmagnitude='+m_max;
     }
     var limit_count = $('#cust_limit_count').val();
     if(limit_count < 1 || limit_count > 20000) {
-      this.infomsg('invalid limit count '+limit_count);
+      this.errmsg('invalid limit count '+limit_count);
       return;
     }
     url += '&limit='+limit_count;
@@ -561,10 +566,32 @@ var EQPlay={
   get_user_url_data:function() {
     var url=$('#user_data_url').val();
     if(url==='') {
-      this.infomsg('URL not set');
+      this.errmsg('URL not set');
       return;
     }
     this.get_data({dataurl:url,type:'user-url'});
+  },
+  get_user_file_data:function() {
+    var el=$('#user_data_file')[0];
+    if(el.files.length == 0) {
+      this.errmsg('no files selected');
+      return;
+    }
+    var f = el.files[0]
+    var reader = new FileReader();
+    reader.onload=$.proxy(function() {
+      var data;
+      try {
+        data=JSON.parse(reader.result);
+      } catch (err) {
+        this.errmsg('JSON.parse failed ' + err);
+        return;
+      }
+      this.init_data(data,{dataurl:f.name,type:'user-file'});
+    },this);
+    this.stop_animation();
+    this.clear_data();
+    reader.readAsBinaryString(f);
   },
   frac_to_ts:function(frac) {
     if(!this.t_start) {
@@ -636,6 +663,7 @@ var EQPlay={
     $('#sel_src').change($.proxy(this.change_source,this));
     $('#btn_cust_get').click($.proxy(this.get_cust_data,this));
     $('#btn_user_url_get').click($.proxy(this.get_user_url_data,this));
+    $('#user_data_file').change($.proxy(this.get_user_file_data,this));
     $('#time_scale').change($.proxy(this.update_time_scale,this));
     $('#time_scale_x10').click($.proxy(function() {
       this.multiply_time_scale(10);
