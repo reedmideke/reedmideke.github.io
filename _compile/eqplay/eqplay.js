@@ -63,7 +63,102 @@ var EQPlay={
   },
   infomsg:function(msg) {
     $('#status').append('<div class="info-msg">'+msg+'</div>');
-    $('#status').scrollTop($('#status').height());
+    $('#status').scrollTop($('#status')[0].scrollHeight);
+  },
+  warnmsg:function(msg) {
+      this.infomsg('WARNING: '+msg);
+  },
+  errmsg:function(msg) {
+      this.infomsg('ERROR: '+msg);
+  },
+  init_data:function(data,opts) {
+      //console.log('whoopie!',data);
+      if(!data || typeof(data) != 'object'
+        || typeof(data.metadata) != 'object'
+        || typeof(data.features) != 'object') {
+        this.errmsg('data does not appear to be valid');
+        return false;
+      }
+      // not exactly an error, but nothing to visualize
+      // should set something in UI
+      if(data.features.length == 0) {
+        this.errmsg('data contains 0 earthquakes');
+        return false;
+      }
+      if(data.type !== 'FeatureCollection') {
+        this.warnmsg('data.type not FeatureCollection');
+      }
+      if(data.metadata.count != data.features.length) {
+        this.warnmsg('metadata.count != features.length');
+      }
+      var features=data.features;
+
+      var i;
+      var i_first = 0;
+      var i_last = 0;
+      for(i=0;i<features.length;i++) {
+        if(features[i_first].properties.time > features[i].properties.time) {
+          i_first==i;
+        }
+        if(features[i_last].properties.time < features[i].properties.time) {
+          i_last==i;
+        }
+      }
+      this.i_first = i_first;
+      this.i_last = i_last;
+      var eq_first = features[i_first];
+      var eq_last = features[i_last];
+
+      this.infomsg('Loaded '+data.features.length+' earthquakes from ' +opts.dataurl);
+      var days;
+      var metaurl=data.metadata.url;
+      if(opts.type == 'usgs-query') {
+        this.t_start=opts.t_start;
+        this.t_end=opts.t_end;
+        if(data.features.length == opts.limit_count) {
+          this.warnmsg('Max results limit hit');
+        }
+      } else if(opts.type == 'feed-url') {
+        // TODO hacky - assume timespan from feed created date and
+        if(metaurl.match(/_week\.geojson$/)) {
+          days=7;
+        } else if(metaurl.match(/_day\.geojson$/)) {
+          days=1;
+        } else if(metaurl.match(/_month\.geojson$/)) {
+          days=30;
+        }
+        if(days) {
+          this.t_end = new Date(data.metadata.generated);
+          this.t_start = new Date(data.metadata.generated-(days*24*60*60*1000));
+        }
+      }
+      if(this.t_start === null) {
+        if(opts.type != 'user-url') {
+          this.warnmsg('failed to detect start/end, using event times');
+        }
+        if(eq_first.properties.time == eq_last.properties.time) {
+          this.t_end = new Date(eq_last.properties.time+1000); // ensure timespan is non zero
+        } else {
+          this.t_end = new Date(eq_last.properties.time);
+        }
+        this.t_start = new Date(eq_first.properties.time);
+      } else {
+        if(eq_first.properties.time < this.t_start.getTime()) {
+          this.t_start = new Date(eq_first.properties.time);
+          this.warnmsg('adjusted start to first event '+this.fmt_date(this.t_start));
+        }
+        if(eq_last.properties.time > this.t_end.getTime()) {
+          this.t_start = new Date(eq_last.properties.time);
+          this.warnmsg('adjusted end to last event '+this.fmt_date(this.t_start));
+        }
+      }
+      this.eqdata=data;
+      this.t_total_ms = this.t_end.getTime() - this.t_start.getTime();
+      this.ts_cur = this.t_start.getTime();
+      this.infomsg('Date range '+this.fmt_date(this.t_start)+' - ' +this.fmt_date(this.t_end));
+      this.update_data_info();
+      this.update_cur_time_display();
+      return true;
   },
   get_data:function(opts) {
     this.stop_animation();
@@ -75,76 +170,9 @@ var EQPlay={
       datatype:'json'
     })
       .done($.proxy(function(data,txtstatus,xhr) {
-        //console.log('whoopie!',data);
-        if(!data || typeof(data) != 'object'
-          || typeof(data.metadata) != 'object'
-          || typeof(data.features) != 'object') {
-          this.infomsg('ERROR: data does not appear to be valid');
+        if(!this.init_data(data,opts)) {
           this.clear_data();
-          return;
         }
-        if(data.type !== 'FeatureCollection') {
-          this.infomsg('WARNING: data.type not FeatureCollection');
-        }
-
-        this.infomsg('Loaded '+data.features.length+' earthquakes from ' +opts.dataurl);
-        if(data.features.length == 0) {
-          this.infomsg('WARNING: data contains 0 earthquakes');
-        }
-        var days;
-        var metaurl=data.metadata.url;
-        if(opts.type == 'usgs-query') {
-          this.t_start=opts.t_start;
-          this.t_end=opts.t_end;
-          if(data.features.length == opts.limit_count) {
-            this.infomsg('Max results limit hit');
-          }
-        } else if(opts.type == 'user-url') {
-          if(data.features.length == 0) {
-            this.infomsg('custom URL with no data');
-            this.clear_data();
-            return;
-          }
-          var i;
-          var ts_min;
-          var ts_max;
-          for(i=0;i<data.features.length;i++) {
-            if(!ts_min) {
-              ts_min=data.features[i].properties.time;
-              ts_max=data.features[i].properties.time+1; // ensure timespan is non zero
-              continue;
-            }
-            if(ts_min > data.features[i].properties.time) {
-              ts_min=data.features[i].properties.time;
-            }
-            if(ts_max < data.features[i].properties.time) {
-              ts_max=data.features[i].properties.time;
-            }
-          }
-          this.t_end = new Date(ts_max);
-          this.t_start = new Date(ts_min);
-        } else {
-          // TODO hacky
-          if(metaurl.match(/_week\.geojson$/)) {
-            days=7;
-          } else if(metaurl.match(/_day\.geojson$/)) {
-            days=1;
-          } else if(metaurl.match(/_month\.geojson$/)) {
-            days=30;
-          } else {
-            this.infomsg('failed to detect time range');
-            this.clear_data();
-            return;
-          }
-          this.t_end = new Date(data.metadata.generated);
-          this.t_start = new Date(data.metadata.generated-(days*24*60*60*1000));
-        }
-        this.eqdata=data;
-        this.t_total_ms = this.t_end.getTime() - this.t_start.getTime();
-        this.ts_cur = this.t_start.getTime();
-        this.infomsg('Date range '+this.fmt_date(this.t_start)+' - ' +this.fmt_date(this.t_end));
-        this.update_data_info();
-        this.update_cur_time_display();
       },this))
       .fail($.proxy(function(data,txtstatus,err) {
         console.log('whoopsie!',txtstatus,err);
@@ -156,6 +184,8 @@ var EQPlay={
     this.eqdata=null;
     this.t_end=null;
     this.t_start=null;
+    this.i_first=null;
+    this.i_last=null;
     this.t_total_ms = 0;
     this.ts_cur=0; // all will be in the future
     if(this.vsource) {
@@ -194,6 +224,7 @@ var EQPlay={
     return str.replace(/\.\d+/,'');
   },
   update_data_info:function() {
+    this.update_cur_time_display();
     if(!this.eqdata) {
       $('#data_start_date').html('-');
       $('#data_end_date').html('-');
@@ -433,7 +464,7 @@ var EQPlay={
     } else {
       $('#usgs_query_inputs').hide();
       $('#user_url_inputs').hide();
-      this.get_data({dataurl:sel,type:'standard-url'});
+      this.get_data({dataurl:sel,type:'feed-url'});
     }
   },
   get_date_input:function(opts) {
