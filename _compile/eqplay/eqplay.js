@@ -324,9 +324,13 @@ var EQPlay={
   update_eq_for_time:function(eq) {
     var info=eq.eqplay;
     info.style_key_prev = info.style_key;
-    info.alpha = this.get_eq_fade(eq,this.ts_cur);
-    if(info.alpha == 0) {
-      info.style_key = null;
+    info.fade_alpha = this.get_eq_fade(eq);
+
+    if(info.fade_alpha === 0
+      || eq.properties.time > this.ts_cur
+      || eq.properties.mag < this.disp_mag_min
+      || eq.properties.mag > this.disp_mag_max) {
+      info.style_key=null;
       return;
     }
     var r=this.marker_base_rad;
@@ -337,14 +341,14 @@ var EQPlay={
     }
     info.radius=r;
     info.stroke_width=this.marker_stroke_width;
-    info.style_key = (r + this.marker_stroke_width) + '_' + info.alpha;
+    info.style_key = (r + this.marker_stroke_width) + '_' + info.fade_alpha;
   },
-  get_eq_fade:function(eq,t) {
+  get_eq_fade:function(eq) {
     var fd = this.fade_duration;
     if(fd == 0) {
       return 1; // no fade
     }
-    var age = t - eq.properties.time;
+    var age = this.ts_cur - eq.properties.time;
     var alpha;
     if(age >= fd) {
       alpha=0;
@@ -366,8 +370,8 @@ var EQPlay={
       // clone the arrays before setting colors
       fill_color=this.marker_fill_color.slice(0);
       stroke_color=this.marker_stroke_color.slice(0);
-      stroke_color[3]*=eq.eqplay.alpha;
-      fill_color[3]*=eq.eqplay.alpha;
+      stroke_color[3]*=eq.eqplay.fade_alpha;
+      fill_color[3]*=eq.eqplay.fade_alpha;
       style = new Style({
         image: new CircleStyle({
           radius: eq.eqplay.radius,
@@ -397,10 +401,7 @@ var EQPlay={
       eq=this.eqdata.features[i];
       this.update_eq_for_time(eq);
       f=this.vsource.getFeatureById(i);
-      if(eq.eqplay.style_key === null
-        || eq.properties.time > t
-        || eq.properties.mag < this.disp_mag_min
-        || eq.properties.mag > this.disp_mag_max) {
+      if(eq.eqplay.style_key === null) {
         eq.eqplay.style_key=null;
         if(f) {
           this.vsource.removeFeature(f)
