@@ -28,9 +28,9 @@ Probably. <a href="https://twitter.com/reedmideke">Tweet me</a>?
 <div id="map" class="map" style="width:100%;height:70vh;min-height:400px;margin-top:2em;"></div>
 <div id="controls" style="margin-top:1em">
 <div>
-Time: <span id="cur_time" style="display:inline-block;min-width:12em">-</span>
-Speed: <span id="time_scale_disp_x" style="text-align:right;display:inline-block;min-width:3em"></span>x
- <span id="time_scale_disp_t" style="text-align:right;display:inline-block;min-width:5em"></span>/s
+Time: <span class="cur-time-disp" style="display:inline-block;min-width:12em">-</span>
+Speed: <span class="time-scale-x-disp" style="text-align:right;display:inline-block;min-width:3em"></span>x
+ <span class="time-scale-t-disp" style="text-align:right;display:inline-block;min-width:5em"></span>/s
 <input style="display:block;width:100%;" id="time_line" type="range" min="0" max="10000" value="0" />
 </div>
 <button id="btn_play" style="min-width:6em;display:inline-block" type="button"><span id="txt_play">▶ Play</span><span style="display:none" id="txt_pause">⏸ Pause</span></button>
@@ -75,11 +75,11 @@ Speed
 <div style="display:none" class="cust-src-settings" id="usgs_query_inputs">
 Start <input type="date" id="cust_start_date" />
 <input type="text" maxlength="2" size="1" id="cust_start_h" />
-: <input type="text" maxlength="2" size="1" id="cust_start_m" min="0" max="59" /> <span class="tz_disp"></span>
+: <input type="text" maxlength="2" size="1" id="cust_start_m" min="0" max="59" /> <span class="tz-disp"></span>
 <br />
 End <input type="date" id="cust_end_date" />
 <input type="text" maxlength="2" size="1" id="cust_end_h" />
-: <input type="text" maxlength="2" size="1" id="cust_end_m" min="0" max="59" /> <span class="tz_disp"></span>, default now.
+: <input type="text" maxlength="2" size="1" id="cust_end_m" min="0" max="59" /> <span class="tz-disp"></span>, default now.
 <br />
 <label for="cust_mag_min">Mag min</label> <input type="number" id="cust_mag_min" min="-2" max="10" step="0.1" value="2.5" required />
 <label for="cust_mag_max">Max</label> <input type="number" id="cust_mag_max" min="-1.9" max="10" step="0.1" />
@@ -134,20 +134,28 @@ M <span class="data-mag-min-disp">-</span> - <span class="data-mag-max-disp">-</
 Marker options:
 <br />
 <label for="fade_time">Fade time:</label>
-<input id="fade_time" type="range" min="0" max="240" value="0" /> <span id="fade_time_display"></span>
+<input id="fade_time" type="range" min="0" max="240" value="0" /> <span class="fade-time-disp"></span>
 <br />
-Base color: <label for="marker_fill_color">Fill</label> <input id="marker_fill_color" type="color" value="#ff0000" /> <label for="market_stroke_color">Outline</label> <input id="marker_stroke_color" type="color" value="#ff8000" />
+Point <label for="marker_fill_color">color</label> <input id="marker_fill_color" type="color" value="#ff0000" />
+opacity <input id="marker_fill_alpha" type="range" min="0" max="1" step="0.1" value="0.9" /> <span class="marker-fill-alpha-disp"></span>
+size <input style="width:4em" id="marker_base_rad" type="range" min="1" max="4" value="1" /> <span class="marker-base-rad-disp"></span>
+<label for="marker_do_scale_mag">Scale for M</label> <input id="marker_do_scale_mag" type="checkbox" checked />
 <br />
-Base size <input style="width:4em" id="marker_base_rad" type="range" min="1" max="4" value="1" /> <span id="marker_base_rad_disp"></span> <label for="marker_do_scale_mag">Scale for M</label> <input id="marker_do_scale_mag" type="checkbox" checked />
+Outline <label for="market_stroke_color">color</label> <input id="marker_stroke_color" type="color" value="#ff8000" />
+opacity <input id="marker_stroke_alpha" type="range" min="0" max="1" step="0.1" value="0.8" /> <span class="marker-stroke-alpha-disp"></span>
+size <input style="width:4em" id="marker_stroke_width" type="range" min="1" max="4" value="1" /> <span class="marker-stroke-width-disp"></span>
+
+<br />
+
 
 <br />
 Display mag:
 <br />
 <label for="disp_mag_min">Min</label>
-<input id="disp_mag_min" type="range" min="-2" max="10" step="0.1" value="-2" /> <span id="disp_mag_min_disp"></span>
+<input id="disp_mag_min" type="range" min="-2" max="10" step="0.1" value="-2" /> <span class="disp-mag-min-disp"></span>
 <br />
 <label for="disp_mag_max">Max</label>
-<input id="disp_mag_max" type="range" min="-2" max="10" step="0.1" value="10" /> <span id="disp_mag_max_disp"></span>
+<input id="disp_mag_max" type="range" min="-2" max="10" step="0.1" value="10" /> <span id="disp-mag-max-disp"></span>
 <br />
 <label for="sel_tz">Time zone:</label>
 <select id="sel_tz">

@@ -320,7 +320,7 @@ var EQPlay={
         r = r*Math.round(eq.properties.mag*10)/10; // limit unique values
       }
     }
-    var style_key = r + '_' + alpha;
+    var style_key = (r + this.marker_stroke_width) + '_' + alpha;
     var style=this.style_cache[style_key];
     var fill_color;
     var stroke_color;
@@ -329,8 +329,8 @@ var EQPlay={
       // clone the arrays before setting colors
       fill_color=this.marker_fill_color.slice(0);
       stroke_color=this.marker_stroke_color.slice(0);
-      stroke_color[3]=alpha;
-      fill_color[3]=alpha*0.8;
+      stroke_color[3]*=alpha;
+      fill_color[3]*=alpha;
       style = new Style({
         image: new CircleStyle({
           radius: r,
@@ -339,7 +339,7 @@ var EQPlay={
           }),
           stroke: new Stroke({
             color: stroke_color,
-            width: 1
+            width: this.marker_stroke_width
           })
         })
       });
@@ -474,11 +474,11 @@ var EQPlay={
   },
   update_cur_time_display:function() {
     if(this.ts_cur) {
-      $('#cur_time').html(this.fmt_date(new Date(this.ts_cur)));
+      $('.cur-time-disp').html(this.fmt_date(new Date(this.ts_cur)));
     } else if(this.t_start) {
-      $('#cur_time').html(this.fmt_date(this.t_start));
+      $('.cur-time-disp').html(this.fmt_date(this.t_start));
     } else {
-      $('#cur_time').html('-');
+      $('.cur-time-disp').html('-');
     }
     $('#time_line').val(this.cur_time_frac()*this.time_line_scale);
   },
@@ -486,8 +486,8 @@ var EQPlay={
     this.update_animation_values();
     this.ts_step = $('#time_scale').val() * 1000 / this.target_fps;
     this.update_fade_time();
-    $('#time_scale_disp_x').html($('#time_scale').val());
-    $('#time_scale_disp_t').html(this.fmt_ms_hhmmss(this.ts_step*this.target_fps));
+    $('.time-scale-x-disp').html($('#time_scale').val());
+    $('.time-scale-t-disp').html(this.fmt_ms_hhmmss(this.ts_step*this.target_fps));
   },
   multiply_time_scale(factor) {
       var v=$('#time_scale').val()*factor;
@@ -502,25 +502,25 @@ var EQPlay={
   update_fade_time:function() {
     this.fade_seconds = $('#fade_time').val();
     if(this.fade_seconds > 0) {
-      $('#fade_time_display').html('animation ' + this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.get_fade_duration()));
+      $('.fade-time-disp').html('animation ' + this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.get_fade_duration()));
     } else {
-      $('#fade_time_display').html('off');
+      $('.fade-time-disp').html('off');
     }
     this.update_features_for_time();
   },
   update_disp_mag:function() {
     this.disp_mag_min = parseFloat($('#disp_mag_min').val());
     if(this.disp_mag_min > parseFloat($('#disp_mag_min').attr('min'))) {
-      $('#disp_mag_min_disp').html(this.disp_mag_min);
+      $('.disp-mag-min-disp').html(this.disp_mag_min);
     } else {
-      $('#disp_mag_min_disp').html('off');
+      $('.disp-mag-min-disp').html('off');
       this.disp_mag_min = -999;
     }
     this.disp_mag_max = parseFloat($('#disp_mag_max').val());
     if(this.disp_mag_max < parseFloat($('#disp_mag_max').attr('max'))) {
-      $('#disp_mag_max_disp').html(this.disp_mag_max);
+      $('.disp-mag-max-disp').html(this.disp_mag_max);
     } else {
-      $('#disp_mag_max_disp').html('off');
+      $('.disp-mag-max-disp').html('off');
       this.disp_mag_max = 999;
     }
     this.update_features_for_time();
@@ -528,9 +528,9 @@ var EQPlay={
   update_tz_info:function() {
     this.tz = $('#sel_tz').val();
     if(this.tz == 'browser') {
-      $('.tz_disp').html('Browser timezone');
+      $('.tz-disp').html('Browser timezone');
     } else {
-      $('.tz_disp').html('UTC');
+      $('.tz-disp').html('UTC');
     }
     this.update_data_info();
     this.update_cur_time_display();
@@ -739,12 +739,18 @@ var EQPlay={
   },
   update_marker_colors:function() {
     this.marker_fill_color=this.color_to_rgb($('#marker_fill_color').val());
+    this.marker_fill_color[3] = parseFloat($('#marker_fill_alpha').val());
+    $('.marker-fill-alpha-disp').html(this.marker_fill_color[3]);
     this.marker_stroke_color=this.color_to_rgb($('#marker_stroke_color').val());
+    this.marker_stroke_color[3] = parseFloat($('#marker_stroke_alpha').val());
+    $('.marker-stroke-alpha-disp').html(this.marker_stroke_color[3]);
     this.update_features_full();
   },
   update_marker_scale:function() {
     this.marker_base_rad = parseInt($('#marker_base_rad').val());
-    $('#marker_base_rad_disp').html(this.marker_base_rad*2);
+    $('.marker-base-rad-disp').html(this.marker_base_rad*2);
+    this.marker_stroke_width = parseInt($('#marker_stroke_width').val());
+    $('.marker-stroke-width-disp').html(this.marker_stroke_width);
     this.marker_do_scale_mag = $('#marker_do_scale_mag:checked').length > 0;
     this.update_features_full();
   },
@@ -796,10 +802,9 @@ var EQPlay={
     $('#btn_step_10').click($.proxy(function() {
       this.time_step(10);
     },this));
-    $('#marker_fill_color').change($.proxy(this.update_marker_colors,this));
-    $('#marker_stroke_color').change($.proxy(this.update_marker_colors,this));
+    $('#marker_fill_color, #marker_stroke_color, #marker_fill_alpha, #marker_stroke_alpha').change($.proxy(this.update_marker_colors,this));
     $('#marker_do_scale_mag').change($.proxy(this.update_marker_scale,this));
-    $('#marker_base_rad').change($.proxy(this.update_marker_scale,this));
+    $('#marker_base_rad, #marker_stroke_width').change($.proxy(this.update_marker_scale,this));
     this.time_line_scale=parseFloat($('#time_line').attr('max'));
     // these inits may try to clear / re-render, do BEFORE first get_data()
     this.update_time_scale();
