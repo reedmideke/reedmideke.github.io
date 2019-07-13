@@ -81,8 +81,8 @@ End <input type="date" id="cust_end_date" />
 <input type="text" maxlength="2" size="1" id="cust_end_h" />
 : <input type="text" maxlength="2" size="1" id="cust_end_m" min="0" max="59" /> <span class="tz_disp"></span>, default now.
 <br />
-<label for="cust_mag_min">Mag min</label> <input type="number" id="cust_mag_min" min="0" max="10" step="0.1" value="2.5" required />
-<label for="cust_mag_max">Max</label> <input type="number" id="cust_mag_max" min="0.1" max="10" step="0.1" />
+<label for="cust_mag_min">Mag min</label> <input type="number" id="cust_mag_min" min="-2" max="10" step="0.1" value="2.5" required />
+<label for="cust_mag_max">Max</label> <input type="number" id="cust_mag_max" min="-1.9" max="10" step="0.1" />
 <br />
 Limit bounds:
 <br />
@@ -93,7 +93,7 @@ Limit bounds:
 <label for="cust_bounds_map_box">Map view</label> <span class="map-box-disp"></span>
 <br />
 <input type="radio" id="cust_bounds_map_rad" name="cust_bounds_radio" value="map-rad-km">
-<label for="cust_bounds_map_rad">Map center radius</label> <input type="number" id="cust_bounds_map_rad_val" min="1" max="20000">km from <span class="map-center-disp"></span>
+<label for="cust_bounds_map_rad">Radius</label> <input type="number" id="cust_bounds_map_rad_val" min="1" max="20000">km from map center <span class="map-center-disp"></span>
 <br />
 <label for="cust_limit_count">Limit max records</label> <input type="number" id="cust_limit_count" min="1" max="20000" value="20000" />
 <br />
@@ -126,7 +126,9 @@ NOTE: Minimal validation, time range set from first/last events.
 <input type="file" id="user_data_file" />
 </div>
 <div>
-Data info: Start <span id="data_start_date">-</span> End <span id="data_end_date">-</span> Total quakes <span id="data_quake_count">-</span>
+Data info: Start <span class="data-start-date-disp">-</span> End <span class="data-end-date-disp">-</span>
+Total quakes <span class="data-quake-count-disp">-</span>
+Mag <span class="data-mag-min-disp">-</span> - <span class="data-mag-max-disp">-</span>
 </div>
 <br />
 Marker options:

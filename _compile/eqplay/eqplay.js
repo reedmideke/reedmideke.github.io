@@ -138,6 +138,8 @@ var EQPlay={
       var i;
       var i_first = 0;
       var i_last = 0;
+      var i_mag_min = 0;
+      var i_mag_max = 0;
       for(i=0;i<features.length;i++) {
         if(features[i_first].properties.time > features[i].properties.time) {
           i_first=i;
@@ -145,13 +147,24 @@ var EQPlay={
         if(features[i_last].properties.time < features[i].properties.time) {
           i_last=i;
         }
+        if(features[i_mag_min].properties.mag > features[i].properties.mag) {
+          i_mag_min=i;
+        }
+        if(features[i_mag_max].properties.mag < features[i].properties.mag) {
+          i_mag_max=i;
+        }
       }
       this.i_first = i_first;
       this.i_last = i_last;
+      this.i_mag_min = i_mag_min;
+      this.i_mag_max = i_mag_max;
       var eq_first = features[i_first];
       var eq_last = features[i_last];
 
-      this.infomsg('Loaded '+data.features.length+' earthquakes from ' +opts.dataurl);
+      this.infomsg('Loaded '+data.features.length
+                +' quakes from ' +opts.dataurl
+                +' M '+features[i_mag_min].properties.mag
+                +' - '+features[i_mag_max].properties.mag);
       var days;
       var metaurl=data.metadata.url;
       if(opts.type == 'usgs-query') {
@@ -228,6 +241,8 @@ var EQPlay={
     this.t_start=null;
     this.i_first=null;
     this.i_last=null;
+    this.i_mag_min=null;
+    this.i_mag_max=null;
     this.t_total_ms = 0;
     this.ts_cur=0; // all will be in the future
     if(this.vsource) {
@@ -268,14 +283,18 @@ var EQPlay={
   update_data_info:function() {
     this.update_cur_time_display();
     if(!this.eqdata) {
-      $('#data_start_date').html('-');
-      $('#data_end_date').html('-');
-      $('#data_quake_count').html('-');
+      $('.data-start-date-disp').html('-');
+      $('.data-end-date-disp').html('-');
+      $('.data-quake-count-disp').html('-');
+      $('.data-mag-min-disp').html('-');
+      $('.data-mag-max-disp').html('-');
       return;
     }
-    $('#data_start_date').html(this.fmt_date(this.t_start));
-    $('#data_end_date').html(this.fmt_date(this.t_end));
-    $('#data_quake_count').html(this.eqdata.features.length);
+    $('.data-start-date-disp').html(this.fmt_date(this.t_start));
+    $('.data-end-date-disp').html(this.fmt_date(this.t_end));
+    $('.data-quake-count-disp').html(this.eqdata.features.length);
+    $('.data-mag-min-disp').html(this.eqdata.features[this.i_mag_min].properties.mag);
+    $('.data-mag-max-disp').html(this.eqdata.features[this.i_mag_max].properties.mag);
   },
   get_eq_fade:function(eq,t) {
     var fd = this.get_fade_duration();
@@ -581,7 +600,7 @@ var EQPlay={
 
     url += '&endtime='+t_end.toISOString();
     var m_min=$('#cust_mag_min').val();
-    if(m_min < 0.1 || m_min > 10) {
+    if(m_min < -2 || m_min > 10) {
       this.errmsg('invalid min mag '+m_min);
       return;
     }
