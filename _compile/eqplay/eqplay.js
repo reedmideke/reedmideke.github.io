@@ -456,7 +456,6 @@ var EQPlay={
       this.infomsg('already playing');
       return;
     }
-    this.vsource.clear(true);
     if(!this.ts_cur || this.ts_cur < this.t_start.getTime() || this.ts_cur >= this.t_end.getTime()) {
       this.ts_cur = this.t_start.getTime();
     }
@@ -468,7 +467,11 @@ var EQPlay={
       if(frame%this.info_update_frames == 0) {
         this.update_cur_time_display();
       }
-      this.update_features_for_time();
+      if(frame == 0) {
+        this.update_features_full();
+      } else {
+        this.update_features_for_time();
+      }
       this.ts_cur += this.ts_step;
       if(this.ts_cur > this.t_end.getTime()) {
         this.infomsg('done');
