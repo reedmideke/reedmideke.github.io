@@ -258,6 +258,13 @@ var EQPlay={
     }
     return d.toLocaleString('default',{timeZone:'UTC',hour12:false});
   },
+  fmt_date_ymd:function(d) {
+    if(this.tz == 'browser') {
+      return d.getFullYear() + '-' + this.fmt_int_pad_0(d.getMonth()+1) + '-' + this.fmt_int_pad_0(d.getDay());
+    } else {
+      return d.getUTCFullYear() + '-' + this.fmt_int_pad_0(d.getUTCMonth()+1) + '-' + this.fmt_int_pad_0(d.getUTCDay());
+    }
+  },
   fmt_ms_hhmmss:function(ms) {
     var s=(ms/1000)%60;
     var m=(ms/(1000*60))%60;
@@ -278,6 +285,19 @@ var EQPlay={
     }
     // FP can leave decimals
     return str.replace(/\.\d+/,'');
+  },
+  fmt_int_pad_0:function(n,len) {
+    if(typeof len == 'undefined') {
+      len=2;
+    }
+    // will break on very large / small 11eblah. Meh
+    var s=n.toFixed();
+    var n_len = s.length;
+    var i;
+    for(i=0;i<(len - n_len);i++) {
+      s='0'+s;
+    }
+    return s;
   },
   update_data_info:function() {
     this.update_cur_time_display();
@@ -539,6 +559,9 @@ var EQPlay={
     var sel=$('#sel_src').val();
     if(sel === 'usgs-query') {
       $('.cust-src-settings').not('#usgs_query_inputs').hide();
+      if($('#cust_start_date').val() == '') {
+        $('#cust_start_date').val(this.fmt_date_ymd(new Date()))
+      }
       $('#usgs_query_inputs').show();
     } else if(sel === 'user-url') {
       $('.cust-src-settings').not('#user_url_inputs').hide();
@@ -817,4 +840,5 @@ var EQPlay={
   }
 };
 EQPlay.init();
-
+// for easy console access
+//window.EQPlay = EQPlay;
