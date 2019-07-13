@@ -299,7 +299,7 @@ var EQPlay={
     var r=this.marker_base_rad;
     if(this.marker_do_scale_mag) {
       if(eq.properties.mag > 1) {
-        r = r*eq.properties.mag; // mags seem to be 1 decimal place so not too many unique values
+        r = r*Math.round(eq.properties.mag*10)/10; // limit unique values
       }
     }
     var style_key = r + '_' + alpha;
@@ -705,7 +705,7 @@ var EQPlay={
     this.update_features_full();
   },
   update_marker_scale:function() {
-    this.marker_base_rad = $('#marker_base_rad').val();
+    this.marker_base_rad = parseInt($('#marker_base_rad').val());
     $('#marker_base_rad_disp').html(this.marker_base_rad*2);
     this.marker_do_scale_mag = $('#marker_do_scale_mag:checked').length > 0;
     this.update_features_full();
