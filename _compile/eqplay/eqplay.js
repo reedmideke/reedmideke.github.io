@@ -141,6 +141,11 @@ var EQPlay={
       var i_mag_min = 0;
       var i_mag_max = 0;
       for(i=0;i<features.length;i++) {
+        // initialize display state
+        features[i].eqplay={
+          style_key:null,
+          style_key_prev:null
+        };
         if(features[i_first].properties.time > features[i].properties.time) {
           i_first=i;
         }
@@ -315,6 +320,24 @@ var EQPlay={
     $('.data-mag-min-disp').html(this.eqdata.features[this.i_mag_min].properties.mag);
     $('.data-mag-max-disp').html(this.eqdata.features[this.i_mag_max].properties.mag);
   },
+  update_eq_for_time:function(eq) {
+    var info=eq.eqplay;
+    info.style_key_prev = info.style_key;
+    info.alpha = this.get_eq_fade(this.ts_cur);
+    if(info.alpha == 0) {
+      info.style_key = null;
+      return;
+    }
+    var r=this.marker_base_rad;
+    if(this.marker_do_scale_mag) {
+      if(eq.properties.mag > 1) {
+        r = r*Math.round(eq.properties.mag*10)/10; // limit unique values
+      }
+    }
+    info.radius=r;
+    info.stroke_width=this.marker_stroke_width;
+    info.style_key = (r + this.marker_stroke_width) + '_' + info.alpha;
+  },
   get_eq_fade:function(eq,t) {
     var fd = this.get_fade_duration();
     if(fd == 0) {
@@ -331,17 +354,10 @@ var EQPlay={
     alpha = Math.round(alpha*32)/32;
     return alpha;
   },
-  get_eq_style:function(eq,alpha) {
+  get_eq_style:function(eq) {
     // butchered from
     // https://openlayers.org/en/latest/examples/kml-earthquakes.html
-    var r=this.marker_base_rad;
-    if(this.marker_do_scale_mag) {
-      if(eq.properties.mag > 1) {
-        r = r*Math.round(eq.properties.mag*10)/10; // limit unique values
-      }
-    }
-    var style_key = (r + this.marker_stroke_width) + '_' + alpha;
-    var style=this.style_cache[style_key];
+    var style=this.style_cache[eq.eqplay.style_key];
     var fill_color;
     var stroke_color;
 
@@ -349,21 +365,21 @@ var EQPlay={
       // clone the arrays before setting colors
       fill_color=this.marker_fill_color.slice(0);
       stroke_color=this.marker_stroke_color.slice(0);
-      stroke_color[3]*=alpha;
-      fill_color[3]*=alpha;
+      stroke_color[3]*=eq.eqplay.alpha;
+      fill_color[3]*eq.eqplay.alpha;
       style = new Style({
         image: new CircleStyle({
-          radius: r,
+          radius: eq.eqplay.radius,
           fill: new Fill({
             color: fill_color
           }),
           stroke: new Stroke({
             color: stroke_color,
-            width: this.marker_stroke_width
+            width: eq.eqplay.marker_width
           })
         })
       });
-      this.style_cache[style_key] = style;
+      this.style_cache[eq.eqplay.style_key] = style;
     }
     return style;
   },
@@ -371,39 +387,34 @@ var EQPlay={
     var eq;
     var i;
     var f;
-    var style;
     var to_add=[];
-    var alpha;
     var t=this.ts_cur;
     if(!this.eqdata) {
       return;
     }
     for(i=0;i<this.eqdata.features.length;i++) {
       eq=this.eqdata.features[i];
+      this.update_eq_for_time(eq);
       f=this.vsource.getFeatureById(i);
-      alpha=this.get_eq_fade(eq,t);
-      if(alpha == 0
+      if(eq.eqplay.style_key === null
         || eq.properties.time > t
         || eq.properties.mag < this.disp_mag_min
         || eq.properties.mag > this.disp_mag_max) {
-        eq.last_alpha = 0;
+        eq.eqplay.style_key=null;
         if(f) {
           this.vsource.removeFeature(f)
         }
         continue;
       }
       if(eq.properties.time <= t) {
-        style = this.get_eq_style(eq,alpha);
         if(!f) {
           f=new Feature(new Point(fromLonLat([eq.geometry.coordinates[0],eq.geometry.coordinates[1]])));
           f.setId(i); // use index rather than remote ID, for easier crossref
-          f.setStyle(style);
-          eq.last_alpha = alpha;
+          f.setStyle(this.get_eq_style(eq));
           to_add.push(f);
         } else {
-          if(alpha != eq.last_alpha) {
-            f.setStyle(style);
-            eq.last_alpha = alpha;
+          if(eq.eqplay.style_key !== eq.eqplay.style_key_prev) {
+            f.setStyle(this.get_eq_style(eq));
           }
         }
       }
