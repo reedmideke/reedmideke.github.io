@@ -128,7 +128,7 @@ NOTE: Minimal validation, time range set from first/last events.
 <div>
 Data info: Start <span class="data-start-date-disp">-</span> End <span class="data-end-date-disp">-</span>
 Total quakes <span class="data-quake-count-disp">-</span>
-Mag <span class="data-mag-min-disp">-</span> - <span class="data-mag-max-disp">-</span>
+M <span class="data-mag-min-disp">-</span> - <span class="data-mag-max-disp">-</span>
 </div>
 <br />
 Marker options:
@@ -140,6 +140,14 @@ Base color: <label for="marker_fill_color">Fill</label> <input id="marker_fill_c
 <br />
 Base size <input style="width:4em" id="marker_base_rad" type="range" min="1" max="4" value="1" /> <span id="marker_base_rad_disp"></span> <label for="marker_do_scale_mag">Scale for M</label> <input id="marker_do_scale_mag" type="checkbox" checked />
 
+<br />
+Display mag:
+<br />
+<label for="disp_mag_min">Min</label>
+<input id="disp_mag_min" type="range" min="-2" max="10" step="0.1" value="-2" /> <span id="disp_mag_min_disp"></span>
+<br />
+<label for="disp_mag_max">Max</label>
+<input id="disp_mag_max" type="range" min="-2" max="10" step="0.1" value="10" /> <span id="disp_mag_max_disp"></span>
 <br />
 <label for="sel_tz">Time zone:</label>
 <select id="sel_tz">

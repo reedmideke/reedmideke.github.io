@@ -363,7 +363,10 @@ var EQPlay={
       eq=this.eqdata.features[i];
       f=this.vsource.getFeatureById(i);
       alpha=this.get_eq_fade(eq,t);
-      if(alpha == 0 || eq.properties.time > t) {
+      if(alpha == 0
+        || eq.properties.time > t
+        || eq.properties.mag < this.disp_mag_min
+        || eq.properties.mag > this.disp_mag_max) {
         eq.last_alpha = 0;
         if(f) {
           this.vsource.removeFeature(f)
@@ -503,6 +506,23 @@ var EQPlay={
       $('#fade_time_display').html('animation ' + this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.get_fade_duration()));
     } else {
       $('#fade_time_display').html('off');
+    }
+    this.update_features_for_time();
+  },
+  update_disp_mag:function() {
+    this.disp_mag_min = parseFloat($('#disp_mag_min').val());
+    if(this.disp_mag_min > parseFloat($('#disp_mag_min').attr('min'))) {
+      $('#disp_mag_min_disp').html(this.disp_mag_min);
+    } else {
+      $('#disp_mag_min_disp').html('off');
+      this.disp_mag_min = -999;
+    }
+    this.disp_mag_max = parseFloat($('#disp_mag_max').val());
+    if(this.disp_mag_max < parseFloat($('#disp_mag_max').attr('max'))) {
+      $('#disp_mag_max_disp').html(this.disp_mag_max);
+    } else {
+      $('#disp_mag_max_disp').html('off');
+      this.disp_mag_max = 999;
     }
     this.update_features_for_time();
   },
@@ -756,6 +776,7 @@ var EQPlay={
       this.multiply_time_scale(0.5);
     },this));
     $('#fade_time').change($.proxy(this.update_fade_time,this));
+    $('#disp_mag_min, #disp_mag_max').change($.proxy(this.update_disp_mag,this));
     $('#sel_tz').change($.proxy(this.update_tz_info,this));
     $('#time_line').change($.proxy(this.time_warp,this));
     $('#btn_step_n10').click($.proxy(function() {
@@ -780,10 +801,11 @@ var EQPlay={
     $('#marker_stroke_color').change($.proxy(this.update_marker_colors,this));
     $('#marker_do_scale_mag').change($.proxy(this.update_marker_scale,this));
     $('#marker_base_rad').change($.proxy(this.update_marker_scale,this));
-    this.time_line_scale=$('#time_line').attr('max');
+    this.time_line_scale=parseFloat($('#time_line').attr('max'));
     // these inits may try to clear / re-render, do BEFORE first get_data()
     this.update_time_scale();
     this.update_fade_time();
+    this.update_disp_mag();
     this.update_marker_colors();
     this.update_marker_scale();
     this.update_tz_info();
