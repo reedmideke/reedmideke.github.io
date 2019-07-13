@@ -37,6 +37,7 @@ var EQPlay={
     this.ts_step=0;
     this.target_fps=10;
     this.fade_seconds=0;
+    this.fade_duration=0;
     this.info_update_frames=2; // update html info every Nth frame
     this.time_line_scale=1; // initial safe value before DOM ready
     this.timer=null;
@@ -323,7 +324,7 @@ var EQPlay={
   update_eq_for_time:function(eq) {
     var info=eq.eqplay;
     info.style_key_prev = info.style_key;
-    info.alpha = this.get_eq_fade(this.ts_cur);
+    info.alpha = this.get_eq_fade(eq,this.ts_cur);
     if(info.alpha == 0) {
       info.style_key = null;
       return;
@@ -339,7 +340,7 @@ var EQPlay={
     info.style_key = (r + this.marker_stroke_width) + '_' + info.alpha;
   },
   get_eq_fade:function(eq,t) {
-    var fd = this.get_fade_duration();
+    var fd = this.fade_duration;
     if(fd == 0) {
       return 1; // no fade
     }
@@ -366,7 +367,7 @@ var EQPlay={
       fill_color=this.marker_fill_color.slice(0);
       stroke_color=this.marker_stroke_color.slice(0);
       stroke_color[3]*=eq.eqplay.alpha;
-      fill_color[3]*eq.eqplay.alpha;
+      fill_color[3]*=eq.eqplay.alpha;
       style = new Style({
         image: new CircleStyle({
           radius: eq.eqplay.radius,
@@ -494,8 +495,8 @@ var EQPlay={
       this.start_animation();
     }
   },
-  get_fade_duration:function() {
-    return this.ts_step * this.target_fps * this.fade_seconds;
+  anim_ms_to_duration:function(ms) {
+    return this.ts_step * this.target_fps * ms/1000;
   },
   cur_time_frac:function() {
     if(!this.t_total_ms || !this.ts_cur) {
@@ -521,19 +522,20 @@ var EQPlay={
     $('.time-scale-t-disp').html(this.fmt_ms_hhmmss(this.ts_step*this.target_fps));
   },
   multiply_time_scale(factor) {
-      var v=$('#time_scale').val()*factor;
-      if(v > $('#time_scale').attr('max')) {
-        v = $('#time_scale').attr('max');
-      } else if(v < $('#time_scale').attr('min')) {
-        v = $('#time_scale').attr('min');
-      }
-      $('#time_scale').val(v);
-      this.update_time_scale();
+    var v=$('#time_scale').val()*factor;
+    if(v > $('#time_scale').attr('max')) {
+      v = $('#time_scale').attr('max');
+    } else if(v < $('#time_scale').attr('min')) {
+      v = $('#time_scale').attr('min');
+    }
+    $('#time_scale').val(v);
+    this.update_time_scale();
   },
   update_fade_time:function() {
-    this.fade_seconds = $('#fade_time').val();
+    this.fade_seconds = parseInt($('#fade_time').val(),10);
+    this.fade_duration = this.anim_ms_to_duration(this.fade_seconds*1000);
     if(this.fade_seconds > 0) {
-      $('.fade-time-disp').html('animation ' + this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.get_fade_duration()));
+      $('.fade-time-disp').html('animation ' + this.fade_seconds + 's' + ' real ' + this.fmt_ms_hhmmss(this.fade_duration));
     } else {
       $('.fade-time-disp').html('off');
     }
