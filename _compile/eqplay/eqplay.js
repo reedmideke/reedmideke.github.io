@@ -210,6 +210,7 @@ var EQPlay={
       this.eqdata=data;
       this.t_total_ms = this.t_end.getTime() - this.t_start.getTime();
       this.infomsg('Date range '+this.fmt_date(this.t_start)+' - ' +this.fmt_date(this.t_end));
+      this.update_data_info();
       this.time_warp_to(this.t_end.getTime());// jump to end, showing all loaded EQ
       return true;
   },
