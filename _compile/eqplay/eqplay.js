@@ -26,7 +26,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import {Map, View} from 'ol';
 import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer';
 import {Vector as VectorSource, OSM as OSMSource} from 'ol/source';
-import {fromLonLat} from 'ol/proj';
+import {getBottomLeft, getTopRight} from 'ol/extent.js';
+import {fromLonLat,toLonLat} from 'ol/proj';
 import {Fill, Stroke, Style, Circle as CircleStyle} from 'ol/style';
 import Feature from 'ol/Feature';
 import {Circle, Point} from 'ol/geom';
@@ -59,7 +60,48 @@ var EQPlay={
         zoom: 8
       })
     });
+    this.map.on('moveend',$.proxy(this.on_map_moveend,this));
     $(document).ready($.proxy(this.onready,this));
+  },
+  // based on https://openlayers.org/en/latest/examples/moveend.html
+  wrap_lon:function(value) {
+    var worlds = Math.floor((value + 180) / 360);
+    return value - (worlds * 360);
+  },
+  on_map_moveend:function() {
+    var view=this.map.getView();
+    var center=toLonLat(view.getCenter());
+    var extent = view.calculateExtent(this.map.getSize());
+    var bottomLeft = toLonLat(getBottomLeft(extent));
+    // values appear to already be wrapped, but was in example
+    bottomLeft[0]=this.wrap_lon(bottomLeft[0]);
+    var topRight = toLonLat(getTopRight(extent));
+    topRight[0]=this.wrap_lon(topRight[0]);
+    //console.log('resolution',view.getResolution());
+    //console.log('bottomLeft',bottomLeft,'topRight',topRight,'center',center,);
+    this.mappos={
+      n_lat:topRight[1],
+      e_lng:topRight[0],
+      s_lat:bottomLeft[1],
+      w_lng:bottomLeft[0],
+      c_lat:center[1],
+      c_lng:center[0]
+    };
+    $('.map-box-disp').html('(' + this.mappos.s_lat.toFixed(2) +
+                              ',' + this.mappos.e_lng.toFixed(2) +
+                              ') (' + this.mappos.n_lat.toFixed(2) +
+                              ',' + this.mappos.w_lng.toFixed(2) + ')');
+    $('.map-center-disp').html('(' + this.mappos.c_lat.toFixed(2) +
+                              ',' + this.mappos.c_lng.toFixed(2)+')');
+    // hack to avoid ambiguity in bounds when map is repeated
+    if(this.mappos.n_lat - this.mappos.s_lat > 110) {
+      $('#cust_bounds_map_box').prop('disabled',true);
+      if($('#cust_bounds_map_box:checked').length) {
+        $('#cust_bounds_none').prop('checked',true);
+      }
+    } else {
+      $('#cust_bounds_map_box').prop('disabled',false);
+    }
   },
   infomsg:function(msg) {
     $('#status').append('<div class="info-msg">'+msg+'</div>');
@@ -106,7 +148,6 @@ var EQPlay={
       }
       this.i_first = i_first;
       this.i_last = i_last;
-      console.log('first',i_first,'last',i_last);
       var eq_first = features[i_first];
       var eq_last = features[i_last];
 
@@ -540,7 +581,7 @@ var EQPlay={
 
     url += '&endtime='+t_end.toISOString();
     var m_min=$('#cust_mag_min').val();
-    if(m_min < 1 || m_min > 10) {
+    if(m_min < 0.1 || m_min > 10) {
       this.errmsg('invalid min mag '+m_min);
       return;
     }
@@ -554,14 +595,32 @@ var EQPlay={
       }
       url += '&maxmagnitude='+m_max;
     }
+    var bounds_mode=$('[name=cust_bounds_radio]:checked').val();
+    if(bounds_mode == 'map-box') {
+      var min_lng = this.mappos.w_lng;
+      if(min_lng > this.mappos.e_lng) {
+        min_lng -= 360;
+        //console.log('180!','w',this.mappos.w_lng.toFixed(2),'->',min_lng.toFixed(2),'e',this.mappos.e_lng.toFixed(2));
+      }
+      url += '&minlongitude=' + min_lng +
+        '&maxlatitude=' + this.mappos.n_lat +
+        '&maxlongitude=' + this.mappos.e_lng +
+        '&minlatitude=' + this.mappos.s_lat;
+    } else if (bounds_mode == 'map-rad-km') {
+      url += '&latitude=' + this.mappos.c_lat +
+        '&longitude=' + this.mappos.c_lng +
+        '&maxradiuskm=' + $('#cust_bounds_map_rad_val').val();
+    }
+
     var limit_count = $('#cust_limit_count').val();
     if(limit_count < 1 || limit_count > 20000) {
       this.errmsg('invalid limit count '+limit_count);
       return;
     }
     url += '&limit='+limit_count;
+    url += '&orderby='+$('#cust_order_by').val();
     this.infomsg('custom query url: '+url);
-    this.get_data({dataurl:url,type:'usgs-query',t_start:t_start,t_end:t_end,limit:limit_count});
+    this.get_data({dataurl:url,type:'usgs-query',t_start:t_start,t_end:t_end,limit_count:limit_count});
   },
   get_user_url_data:function() {
     var url=$('#user_data_url').val();
