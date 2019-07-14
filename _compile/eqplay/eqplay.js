@@ -399,7 +399,7 @@ var EQPlay={
           }),
           stroke: new Stroke({
             color: stroke_color,
-            width: eq.eqplay.marker_width
+            width: eq.eqplay.stroke_width
           })
         })
       });
@@ -806,9 +806,9 @@ var EQPlay={
     this.update_features_full();
   },
   update_marker_scale:function() {
-    this.marker_base_rad = parseInt($('#marker_base_rad').val());
+    this.marker_base_rad = parseInt($('#marker_base_rad').val(),10);
     $('.marker-base-rad-disp').html(this.marker_base_rad*2);
-    this.marker_stroke_width = parseInt($('#marker_stroke_width').val());
+    this.marker_stroke_width = parseInt($('#marker_stroke_width').val(),10);
     $('.marker-stroke-width-disp').html(this.marker_stroke_width);
     this.marker_do_scale_mag = $('#marker_do_scale_mag:checked').length > 0;
     this.update_features_full();
