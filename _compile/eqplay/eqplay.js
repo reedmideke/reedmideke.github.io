@@ -26,7 +26,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import {Map, View} from 'ol';
 import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer';
 import {Vector as VectorSource, OSM as OSMSource} from 'ol/source';
-import {getBottomLeft, getTopRight} from 'ol/extent.js';
+import {getBottomLeft, getTopRight, containsCoordinate, boundingExtent,buffer as extentBuffer} from 'ol/extent.js';
 import {fromLonLat,toLonLat} from 'ol/proj';
 import {Fill, Stroke, Style, Circle as CircleStyle} from 'ol/style';
 import Feature from 'ol/Feature';
@@ -73,14 +73,22 @@ var EQPlay={
   on_map_moveend:function() {
     var view=this.map.getView();
     var center=toLonLat(view.getCenter());
-    var extent = view.calculateExtent(this.map.getSize());
-    var bottomLeft = toLonLat(getBottomLeft(extent));
+    this.map_extent = view.calculateExtent(this.map.getSize());
+    // slightly larger partially on-screen markers will show
+    this.map_extent_marker_buffer = extentBuffer(this.map_extent,100*view.getResolution());
+    // extent coords keep growing if you scroll through repeats, give up
+    if(this.map_extent[0] < -40000000 || this.map_extent[2] > 40000000) {
+      this.do_extent_cull = false;
+    } else {
+      this.do_extent_cull = true;
+    }
+
+    var bottomLeft = toLonLat(getBottomLeft(this.map_extent));
     // values appear to already be wrapped, but was in example
     bottomLeft[0]=this.wrap_lon(bottomLeft[0]);
-    var topRight = toLonLat(getTopRight(extent));
+    var topRight = toLonLat(getTopRight(this.map_extent));
     topRight[0]=this.wrap_lon(topRight[0]);
-    //console.log('resolution',view.getResolution());
-    //console.log('bottomLeft',bottomLeft,'topRight',topRight,'center',center,);
+
     this.mappos={
       n_lat:topRight[1],
       e_lng:topRight[0],
@@ -89,6 +97,10 @@ var EQPlay={
       c_lat:center[1],
       c_lng:center[0]
     };
+    // if not running animation, ensure features are added/removed
+    if(!this.timer) {
+      this.update_features_for_time();
+    }
     $('.map-box-disp').html('(' + this.mappos.s_lat.toFixed(2) +
                               ',' + this.mappos.e_lng.toFixed(2) +
                               ') (' + this.mappos.n_lat.toFixed(2) +
@@ -110,116 +122,120 @@ var EQPlay={
     $('#status').scrollTop($('#status')[0].scrollHeight);
   },
   warnmsg:function(msg) {
-      this.infomsg('WARNING: '+msg);
+    this.infomsg('WARNING: '+msg);
   },
   errmsg:function(msg) {
-      this.infomsg('ERROR: '+msg);
+    this.infomsg('ERROR: '+msg);
   },
   init_data:function(data,opts) {
-      //console.log('whoopie!',data);
-      if(!data || typeof(data) != 'object'
-        || typeof(data.metadata) != 'object'
-        || typeof(data.features) != 'object') {
-        this.errmsg('data does not appear to be valid');
-        return false;
-      }
-      // not exactly an error, but nothing to visualize
-      // should set something in UI
-      if(data.features.length == 0) {
-        this.errmsg('data contains 0 earthquakes');
-        return false;
-      }
-      if(data.type !== 'FeatureCollection') {
-        this.warnmsg('data.type not FeatureCollection');
-      }
-      if(data.metadata.count != data.features.length) {
-        this.warnmsg('metadata.count != features.length');
-      }
-      var features=data.features;
+    //console.log('whoopie!',data);
+    if(!data || typeof(data) != 'object'
+      || typeof(data.metadata) != 'object'
+      || typeof(data.features) != 'object') {
+      this.errmsg('data does not appear to be valid');
+      return false;
+    }
+    // not exactly an error, but nothing to visualize
+    // should set something in UI
+    if(data.features.length == 0) {
+      this.errmsg('data contains 0 earthquakes');
+      return false;
+    }
+    if(data.type !== 'FeatureCollection') {
+      this.warnmsg('data.type not FeatureCollection');
+    }
+    if(data.metadata.count != data.features.length) {
+      this.warnmsg('metadata.count != features.length');
+    }
+    var features=data.features;
 
-      var i;
-      var i_first = 0;
-      var i_last = 0;
-      var i_mag_min = 0;
-      var i_mag_max = 0;
-      for(i=0;i<features.length;i++) {
-        // initialize display state
-        features[i].eqplay={
-          style_key:null,
-          style_key_prev:null
-        };
-        if(features[i_first].properties.time > features[i].properties.time) {
-          i_first=i;
-        }
-        if(features[i_last].properties.time < features[i].properties.time) {
-          i_last=i;
-        }
-        if(features[i_mag_min].properties.mag > features[i].properties.mag) {
-          i_mag_min=i;
-        }
-        if(features[i_mag_max].properties.mag < features[i].properties.mag) {
-          i_mag_max=i;
-        }
+    var i;
+    var i_first = 0;
+    var i_last = 0;
+    var i_mag_min = 0;
+    var i_mag_max = 0;
+    var eq;
+    for(i=0;i<features.length;i++) {
+      eq=features[i];
+      // initialize display state
+      eq.eqplay={
+        style_key:null,
+        style_key_prev:null,
+        coords:fromLonLat([eq.geometry.coordinates[0],eq.geometry.coordinates[1]]),
+      };
+      eq.eqplay.point=new Point(eq.eqplay.coords)
+      if(features[i_first].properties.time > eq.properties.time) {
+        i_first=i;
       }
-      this.i_first = i_first;
-      this.i_last = i_last;
-      this.i_mag_min = i_mag_min;
-      this.i_mag_max = i_mag_max;
-      var eq_first = features[i_first];
-      var eq_last = features[i_last];
+      if(features[i_last].properties.time < eq.properties.time) {
+        i_last=i;
+      }
+      if(features[i_mag_min].properties.mag > eq.properties.mag) {
+        i_mag_min=i;
+      }
+      if(features[i_mag_max].properties.mag < eq.properties.mag) {
+        i_mag_max=i;
+      }
+    }
+    this.i_first = i_first;
+    this.i_last = i_last;
+    this.i_mag_min = i_mag_min;
+    this.i_mag_max = i_mag_max;
+    var eq_first = features[i_first];
+    var eq_last = features[i_last];
 
-      this.infomsg('Loaded '+data.features.length
-                +' quakes from ' +opts.dataurl
-                +' M '+features[i_mag_min].properties.mag
-                +' - '+features[i_mag_max].properties.mag);
-      var days;
-      var metaurl=data.metadata.url;
-      if(opts.type == 'usgs-query') {
-        this.t_start=opts.t_start;
-        this.t_end=opts.t_end;
-        if(data.features.length == opts.limit_count) {
-          this.warnmsg('Max results limit hit');
-        }
-      } else if(opts.type == 'feed-url') {
-        // TODO hacky - assume timespan from feed created date and
-        if(metaurl.match(/_week\.geojson$/)) {
-          days=7;
-        } else if(metaurl.match(/_day\.geojson$/)) {
-          days=1;
-        } else if(metaurl.match(/_month\.geojson$/)) {
-          days=30;
-        }
-        if(days) {
-          this.t_end = new Date(data.metadata.generated);
-          this.t_start = new Date(data.metadata.generated-(days*24*60*60*1000));
-        }
+    this.infomsg('Loaded '+data.features.length
+              +' quakes from ' +opts.dataurl
+              +' M '+features[i_mag_min].properties.mag
+              +' - '+features[i_mag_max].properties.mag);
+    var days;
+    var metaurl=data.metadata.url;
+    if(opts.type == 'usgs-query') {
+      this.t_start=opts.t_start;
+      this.t_end=opts.t_end;
+      if(data.features.length == opts.limit_count) {
+        this.warnmsg('Max results limit hit');
       }
-      if(this.t_start === null) {
-        if(opts.type != 'user-url' && opts.type != 'user-file') {
-          this.warnmsg('failed to detect start/end, using event times');
-        }
-        if(eq_first.properties.time == eq_last.properties.time) {
-          this.t_end = new Date(eq_last.properties.time+1000); // ensure timespan is non zero
-        } else {
-          this.t_end = new Date(eq_last.properties.time);
-        }
-        this.t_start = new Date(eq_first.properties.time);
+    } else if(opts.type == 'feed-url') {
+      // TODO hacky - assume timespan from feed created date and
+      if(metaurl.match(/_week\.geojson$/)) {
+        days=7;
+      } else if(metaurl.match(/_day\.geojson$/)) {
+        days=1;
+      } else if(metaurl.match(/_month\.geojson$/)) {
+        days=30;
+      }
+      if(days) {
+        this.t_end = new Date(data.metadata.generated);
+        this.t_start = new Date(data.metadata.generated-(days*24*60*60*1000));
+      }
+    }
+    if(this.t_start === null) {
+      if(opts.type != 'user-url' && opts.type != 'user-file') {
+        this.warnmsg('failed to detect start/end, using event times');
+      }
+      if(eq_first.properties.time == eq_last.properties.time) {
+        this.t_end = new Date(eq_last.properties.time+1000); // ensure timespan is non zero
       } else {
-        if(eq_first.properties.time < this.t_start.getTime()) {
-          this.t_start = new Date(eq_first.properties.time);
-          this.warnmsg('adjusted start to first event '+this.fmt_date(this.t_start));
-        }
-        if(eq_last.properties.time > this.t_end.getTime()) {
-          this.t_start = new Date(eq_last.properties.time);
-          this.warnmsg('adjusted end to last event '+this.fmt_date(this.t_start));
-        }
+        this.t_end = new Date(eq_last.properties.time);
       }
-      this.eqdata=data;
-      this.t_total_ms = this.t_end.getTime() - this.t_start.getTime();
-      this.infomsg('Date range '+this.fmt_date(this.t_start)+' - ' +this.fmt_date(this.t_end));
-      this.update_data_info();
-      this.time_warp_to(this.t_end.getTime());// jump to end, showing all loaded EQ
-      return true;
+      this.t_start = new Date(eq_first.properties.time);
+    } else {
+      if(eq_first.properties.time < this.t_start.getTime()) {
+        this.t_start = new Date(eq_first.properties.time);
+        this.warnmsg('adjusted start to first event '+this.fmt_date(this.t_start));
+      }
+      if(eq_last.properties.time > this.t_end.getTime()) {
+        this.t_start = new Date(eq_last.properties.time);
+        this.warnmsg('adjusted end to last event '+this.fmt_date(this.t_start));
+      }
+    }
+    this.eqdata=data;
+    this.t_total_ms = this.t_end.getTime() - this.t_start.getTime();
+    this.infomsg('Date range '+this.fmt_date(this.t_start)+' - ' +this.fmt_date(this.t_end));
+    this.update_data_info();
+    this.time_warp_to(this.t_end.getTime());// jump to end, showing all loaded EQ
+    return true;
   },
   get_data:function(opts) {
     this.stop_animation();
@@ -330,7 +346,9 @@ var EQPlay={
     if(info.fade_alpha === 0
       || eq.properties.time > this.ts_cur
       || eq.properties.mag < this.disp_mag_min
-      || eq.properties.mag > this.disp_mag_max) {
+      || eq.properties.mag > this.disp_mag_max
+      || (this.do_extent_cull && !info.point.intersectsExtent(this.map_extent_marker_buffer))
+      ) {
       info.style_key=null;
       return;
     }
@@ -411,7 +429,7 @@ var EQPlay={
       }
       if(eq.properties.time <= t) {
         if(!f) {
-          f=new Feature(new Point(fromLonLat([eq.geometry.coordinates[0],eq.geometry.coordinates[1]])));
+          f=new Feature(eq.eqplay.point);
           f.setId(i); // use index rather than remote ID, for easier crossref
           f.setStyle(this.get_eq_style(eq));
           to_add.push(f);
