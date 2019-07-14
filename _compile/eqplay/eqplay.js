@@ -26,6 +26,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import {Map, View} from 'ol';
 import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer';
 import {Vector as VectorSource, OSM as OSMSource} from 'ol/source';
+import {defaults as defaultControls, ScaleLine} from 'ol/control.js';
 import {getBottomLeft, getTopRight, containsCoordinate, boundingExtent,buffer as extentBuffer} from 'ol/extent.js';
 import {fromLonLat,toLonLat} from 'ol/proj';
 import {Fill, Stroke, Style, Circle as CircleStyle} from 'ol/style';
@@ -43,7 +44,9 @@ var EQPlay={
     this.timer=null;
     this.clear_data();
     this.style_cache={};
+    this.scale_line_active=false;
 
+    this.scale_line = new ScaleLine();
     this.vsource = new VectorSource();
     var vlayer = new VectorLayer({
       source:this.vsource
@@ -692,7 +695,7 @@ var EQPlay={
       }
       url += '&maxmagnitude='+m_max;
     }
-    var bounds_mode=$('[name=cust_bounds_radio]:checked').val();
+    var bounds_mode=$('input[name="cust_bounds_radio"]:checked').val();
     if(bounds_mode == 'map-box') {
       var min_lng = this.mappos.w_lng;
       if(min_lng > this.mappos.e_lng) {
@@ -813,6 +816,18 @@ var EQPlay={
     this.marker_do_scale_mag = $('#marker_do_scale_mag:checked').length > 0;
     this.update_features_full();
   },
+  update_scale_line:function() {
+    var scale_line_mode=$('input[name="scale_line"]:checked').val();
+    if(scale_line_mode === '') {
+      this.map.removeControl(this.scale_line);
+      this.scale_line_active=false;
+    } else {
+      this.scale_line.setUnits(scale_line_mode);
+      if(!this.scale_live_acive) {
+        this.map.addControl(this.scale_line);
+      }
+    }
+  },
   onready:function() {
     $('#btn_play').click($.proxy(function() {
       if(this.timer) {
@@ -864,6 +879,7 @@ var EQPlay={
     $('#marker_fill_color, #marker_stroke_color, #marker_fill_alpha, #marker_stroke_alpha').change($.proxy(this.update_marker_colors,this));
     $('#marker_do_scale_mag').change($.proxy(this.update_marker_scale,this));
     $('#marker_base_rad, #marker_stroke_width').change($.proxy(this.update_marker_scale,this));
+    $('input[name="scale_line"]').change($.proxy(this.update_scale_line,this));
     this.time_line_scale=parseFloat($('#time_line').attr('max'));
     // these inits may try to clear / re-render, do BEFORE first get_data()
     this.update_time_scale();
@@ -871,6 +887,7 @@ var EQPlay={
     this.update_disp_mag();
     this.update_marker_colors();
     this.update_marker_scale();
+    this.update_scale_line();
     this.update_tz_info();
     this.change_source();
   }
