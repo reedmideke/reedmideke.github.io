@@ -686,7 +686,7 @@ var EQPlay={
     if(sel_src === 'usgs-query') {
       url='https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?';
     } else if(sel_src === 'emsc-query') {
-      url='http://www.seismicportal.eu/fdsnws/event/1/query?format=json&';
+      url='https://www.seismicportal.eu/fdsnws/event/1/query?format=json&';
     } else {
       this.errmsg('unknown source '+sel_src);
       return;
