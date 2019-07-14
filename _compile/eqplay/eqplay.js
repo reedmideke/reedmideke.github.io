@@ -58,7 +58,8 @@ var EQPlay={
       ],
       view: new View({
         center: fromLonLat([-117.6, 35.77]),
-        zoom: 8
+        zoom: 8,
+        minZoom: 1
       })
     });
     this.map.on('moveend',$.proxy(this.on_map_moveend,this));
