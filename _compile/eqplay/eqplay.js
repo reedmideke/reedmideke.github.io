@@ -78,13 +78,16 @@ var EQPlay={
     var center=toLonLat(view.getCenter());
     this.map_extent = view.calculateExtent(this.map.getSize());
     // slightly larger partially on-screen markers will show
+    this.do_extent_cull = false; // TODO still broken
     this.map_extent_marker_buffer = extentBuffer(this.map_extent,250*view.getResolution());
     // extent coords keep growing if you scroll through repeats, give up
+    /*
     if(this.map_extent[0] < -40000000 || this.map_extent[2] > 40000000) {
       this.do_extent_cull = false;
     } else {
       this.do_extent_cull = true;
     }
+    */
 
     var bottomLeft = toLonLat(getBottomLeft(this.map_extent));
     // values appear to already be wrapped, but was in example
