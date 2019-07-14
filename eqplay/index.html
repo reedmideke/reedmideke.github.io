@@ -137,11 +137,12 @@ Marker options:
 <input id="fade_time" type="range" min="0" max="240" value="0" /> <span class="fade-time-disp"></span>
 <br />
 Point <label for="marker_fill_color">color</label> <input id="marker_fill_color" type="color" value="#ff0000" />
-opacity <input id="marker_fill_alpha" type="range" min="0" max="1" step="0.1" value="0.9" /> <span class="marker-fill-alpha-disp"></span>
-size <input style="width:4em" id="marker_base_rad" type="range" min="1" max="4" value="1" /> <span class="marker-base-rad-disp"></span>
-<label for="marker_do_scale_mag">Scale for M</label> <input id="marker_do_scale_mag" type="checkbox" checked />
+opacity <input id="marker_fill_alpha" type="range" min="0" max="1" step="0.1" value="0.5" /> <span class="marker-fill-alpha-disp"></span>
+size <input style="width:4em" id="marker_base_rad" type="range" min="0.5" max="4" step=0.5 value="1" /> <span class="marker-base-rad-disp"></span>
 <br />
-Outline <label for="market_stroke_color">color</label> <input id="marker_stroke_color" type="color" value="#ff8000" />
+<label for="marker_scale_mag">Scale by M<sup>n</sup></label> <input id="marker_scale_mag" type="range" min="0.9" max="2" step="0.1" value="1.3" /> <span class="marker-scale-mag-disp"></span>
+<br />
+Outline <label for="market_stroke_color">color</label> <input id="marker_stroke_color" type="color" value="#4040FF" />
 opacity <input id="marker_stroke_alpha" type="range" min="0" max="1" step="0.1" value="0.8" /> <span class="marker-stroke-alpha-disp"></span>
 size <input style="width:4em" id="marker_stroke_width" type="range" min="1" max="4" value="1" /> <span class="marker-stroke-width-disp"></span>
 <br />

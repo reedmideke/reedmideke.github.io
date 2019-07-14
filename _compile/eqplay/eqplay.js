@@ -78,7 +78,7 @@ var EQPlay={
     var center=toLonLat(view.getCenter());
     this.map_extent = view.calculateExtent(this.map.getSize());
     // slightly larger partially on-screen markers will show
-    this.map_extent_marker_buffer = extentBuffer(this.map_extent,100*view.getResolution());
+    this.map_extent_marker_buffer = extentBuffer(this.map_extent,250*view.getResolution());
     // extent coords keep growing if you scroll through repeats, give up
     if(this.map_extent[0] < -40000000 || this.map_extent[2] > 40000000) {
       this.do_extent_cull = false;
@@ -356,9 +356,9 @@ var EQPlay={
       return;
     }
     var r=this.marker_base_rad;
-    if(this.marker_do_scale_mag) {
+    if(this.marker_scale_mag >=1) {
       if(eq.properties.mag > 1) {
-        r = r*Math.round(eq.properties.mag*10)/10; // limit unique values
+        r = r*Math.round(Math.pow(eq.properties.mag,this.marker_scale_mag)*10)/10; // limit unique values
       }
     }
     info.radius=r;
@@ -809,11 +809,16 @@ var EQPlay={
     this.update_features_full();
   },
   update_marker_scale:function() {
-    this.marker_base_rad = parseInt($('#marker_base_rad').val(),10);
+    this.marker_base_rad = parseFloat($('#marker_base_rad').val());
     $('.marker-base-rad-disp').html(this.marker_base_rad*2);
     this.marker_stroke_width = parseInt($('#marker_stroke_width').val(),10);
     $('.marker-stroke-width-disp').html(this.marker_stroke_width);
-    this.marker_do_scale_mag = $('#marker_do_scale_mag:checked').length > 0;
+    this.marker_scale_mag = parseFloat($('#marker_scale_mag').val());
+    if(this.marker_scale_mag >=1) {
+      $('.marker-scale-mag-disp').html(this.marker_scale_mag);
+    } else {
+      $('.marker-scale-mag-disp').html('off');
+    }
     this.update_features_full();
   },
   update_scale_line:function() {
@@ -877,7 +882,7 @@ var EQPlay={
       this.time_step(10);
     },this));
     $('#marker_fill_color, #marker_stroke_color, #marker_fill_alpha, #marker_stroke_alpha').change($.proxy(this.update_marker_colors,this));
-    $('#marker_do_scale_mag').change($.proxy(this.update_marker_scale,this));
+    $('#marker_scale_mag').change($.proxy(this.update_marker_scale,this));
     $('#marker_base_rad, #marker_stroke_width').change($.proxy(this.update_marker_scale,this));
     $('input[name="scale_line"]').change($.proxy(this.update_scale_line,this));
     this.time_line_scale=parseFloat($('#time_line').attr('max'));
