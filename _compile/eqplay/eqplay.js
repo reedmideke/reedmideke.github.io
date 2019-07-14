@@ -150,6 +150,10 @@ var EQPlay={
     if(data.type !== 'FeatureCollection') {
       this.warnmsg('data.type not FeatureCollection');
     }
+    if(opts.type == 'emsc-query') {
+      data.metadata.count = data.metadata.totalCount;
+      data.metadata.url = opts.dataurl;
+    }
     if(data.metadata.count != data.features.length) {
       this.warnmsg('metadata.count != features.length');
     }
@@ -163,6 +167,11 @@ var EQPlay={
     var eq;
     for(i=0;i<features.length;i++) {
       eq=features[i];
+      // unlike USGS, EMSC gives the time as a string like "2019-07-14T07:26:35.0Z"
+      if(opts.type == 'emsc-query') {
+        eq.properties.orig_time = eq.properties.time;
+        eq.properties.time = (new Date(eq.properties.time)).getTime();
+      }
       // initialize display state
       eq.eqplay={
         style_key:null,
@@ -196,7 +205,7 @@ var EQPlay={
               +' - '+features[i_mag_max].properties.mag);
     var days;
     var metaurl=data.metadata.url;
-    if(opts.type == 'usgs-query') {
+    if(opts.type == 'usgs-query' || opts.type == 'emsc-query') {
       this.t_start=opts.t_start;
       this.t_end=opts.t_end;
       if(data.features.length == opts.limit_count) {
@@ -599,7 +608,7 @@ var EQPlay={
   },
   change_source:function() {
     var sel=$('#sel_src').val();
-    if(sel === 'usgs-query') {
+    if(sel === 'usgs-query' || sel === 'emsc-query') {
       $('.cust-src-settings').not('#usgs_query_inputs').hide();
       if($('#cust_start_date').val() == '') {
         $('#cust_start_date').val(this.fmt_date_ymd(new Date()))
@@ -672,7 +681,16 @@ var EQPlay={
   },
   get_cust_data:function() {
     // API documentation at https://earthquake.usgs.gov/fdsnws/event/1/
-    var url='https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?';
+    var url;
+    var sel_src=$('#sel_src').val();
+    if(sel_src === 'usgs-query') {
+      url='https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?';
+    } else if(sel_src === 'emsc-query') {
+      url='http://www.seismicportal.eu/fdsnws/event/1/query?format=json&';
+    } else {
+      this.errmsg('unknown source '+sel_src);
+      return;
+    }
     var t_start=this.get_date_input({id:'cust_start',def_h:0,def_m:0});
     if(!t_start) {
       this.errmsg('invalid start date/time');
@@ -723,7 +741,7 @@ var EQPlay={
     url += '&limit='+limit_count;
     url += '&orderby='+$('#cust_order_by').val();
     this.infomsg('custom query url: '+url);
-    this.get_data({dataurl:url,type:'usgs-query',t_start:t_start,t_end:t_end,limit_count:limit_count});
+    this.get_data({dataurl:url,type:sel_src,t_start:t_start,t_end:t_end,limit_count:limit_count});
   },
   get_user_url_data:function() {
     var url=$('#user_data_url').val();

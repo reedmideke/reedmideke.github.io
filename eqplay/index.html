@@ -7,8 +7,9 @@ headincludes:
 <b>What is this?</b>
 <p>
 A tool to replay earthquake series from USGS <a href="https://earthquake.usgs.gov/earthquakes/feed/">earthquake feeds</a>,
-<a href="https://earthquake.usgs.gov/earthquakes/search/">catalog search</a>, user specified GeoJSON URLs and files,
-or included files featuring the July 2019 Ridgecrest quakes.
+<a href="https://earthquake.usgs.gov/earthquakes/search/">catalog search</a>,
+EMSC <a href="https://www.seismicportal.eu/fdsn-wsevent.html">catalog search</a>,
+user specified GeoJSON URLs and files, or included files featuring the July 2019 Ridgecrest quakes.
 <br />
 Built using <a href="https://openlayers.org">OpenLayers</a>. Data courtesy USGS. Bugs by me.
 </p>
@@ -68,7 +69,8 @@ Speed
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson">M4.5+ Earthquakes Past 30 days</option>
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson">M2.5+ Earthquakes Past 30 days</option>
   <option value="https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.geojson">M1.0+ Earthquakes Past 30 days</option>
-  <option value="usgs-query">USGS database custom query</option>
+  <option value="usgs-query">USGS catalog custom query</option>
+  <option value="emsc-query">EMSC SeismicPortal query</option>
   <option value="user-url">User specified URL</option>
   <option value="user-file">User local file</option>
 </select>
