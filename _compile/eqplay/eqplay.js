@@ -117,7 +117,7 @@ var EQPlay={
     if(this.mappos.n_lat - this.mappos.s_lat > 110) {
       $('#cust_bounds_map_box').prop('disabled',true);
       if($('#cust_bounds_map_box:checked').length) {
-        $('#cust_bounds_none').prop('checked',true);
+        $('#cust_bounds_map_rad').prop('checked',true);
       }
     } else {
       $('#cust_bounds_map_box').prop('disabled',false);
