@@ -298,9 +298,9 @@ var EQPlay={
   },
   fmt_date_ymd:function(d) {
     if(this.tz == 'browser') {
-      return d.getFullYear() + '-' + this.fmt_int_pad_0(d.getMonth()+1) + '-' + this.fmt_int_pad_0(d.getDay());
+      return d.getFullYear() + '-' + this.fmt_int_pad_0(d.getMonth()+1) + '-' + this.fmt_int_pad_0(d.getDate());
     } else {
-      return d.getUTCFullYear() + '-' + this.fmt_int_pad_0(d.getUTCMonth()+1) + '-' + this.fmt_int_pad_0(d.getUTCDay());
+      return d.getUTCFullYear() + '-' + this.fmt_int_pad_0(d.getUTCMonth()+1) + '-' + this.fmt_int_pad_0(d.getUTCDate());
     }
   },
   fmt_ms_hhmmss:function(ms) {
