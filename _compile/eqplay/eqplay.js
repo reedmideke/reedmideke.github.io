@@ -144,7 +144,11 @@ var EQPlay={
     // not exactly an error, but nothing to visualize
     // should set something in UI
     if(data.features.length == 0) {
-      this.errmsg('data contains 0 earthquakes');
+      if(opts.type == 'usgs-query' || opts.type == 'emsc-query') {
+        this.errmsg('query returned 0 earthquakes');
+      } else {
+        this.errmsg('data contains 0 earthquakes');
+      }
       return false;
     }
     if(data.type !== 'FeatureCollection') {
@@ -266,9 +270,14 @@ var EQPlay={
           this.clear_data();
         }
       },this))
-      .fail($.proxy(function(data,txtstatus,err) {
-        console.log('whoopsie!',txtstatus,err);
-        this.infomsg('Failed to load '+opts.dataurl+' error '+err);
+      .fail($.proxy(function(jqxhr,txtstatus,err) {
+        // emsc generates "bad request" or 404 with text status for null result
+        if(opts.type == 'emsc-query' && jqxhr.status == 404 && jqxhr.responseText.indexOf('no result found') >= 0) {
+          this.errmsg('query returned 0 earthquakes');
+        } else {
+          console.log('whoopsie!',txtstatus);
+          this.infomsg('Failed to load '+opts.dataurl+' error '+err);
+        }
         this.clear_data();
       },this));
   },
@@ -695,7 +704,7 @@ var EQPlay={
     if(sel_src === 'usgs-query') {
       url='https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?';
     } else if(sel_src === 'emsc-query') {
-      url='https://www.seismicportal.eu/fdsnws/event/1/query?format=json&';
+      url='https://www.seismicportal.eu/fdsnws/event/1/query?format=json&nodata=404&';
     } else {
       this.errmsg('unknown source '+sel_src);
       return;
