@@ -117,7 +117,7 @@ var EQPlay={
     if(this.mappos.n_lat - this.mappos.s_lat > 110) {
       $('#cust_bounds_map_box').prop('disabled',true);
       if($('#cust_bounds_map_box:checked').length) {
-        $('#cust_bounds_map_rad').prop('checked',true);
+        $('#cust_bounds_map_rad_deg').prop('checked',true);
       }
     } else {
       $('#cust_bounds_map_box').prop('disabled',false);
@@ -608,6 +608,15 @@ var EQPlay={
   },
   change_source:function() {
     var sel=$('#sel_src').val();
+    // emsc doesn't support km radius
+    if(sel == 'emsc-query') {
+      if($('#cust_bounds_map_rad_km:checked').length) {
+        $('#cust_bounds_map_rad_deg').prop('checked',true);
+      }
+      $('#cust_bounds_map_rad_km').prop('disabled',true);
+    } else {
+      $('#cust_bounds_map_rad_km').prop('disabled',false);
+    }
     if(sel === 'usgs-query' || sel === 'emsc-query') {
       $('.cust-src-settings').not('#usgs_query_inputs').hide();
       if($('#cust_start_date').val() == '') {
@@ -730,7 +739,11 @@ var EQPlay={
     } else if (bounds_mode == 'map-rad-km') {
       url += '&latitude=' + this.mappos.c_lat +
         '&longitude=' + this.mappos.c_lng +
-        '&maxradiuskm=' + $('#cust_bounds_map_rad_val').val();
+        '&maxradiuskm=' + $('#cust_bounds_map_rad_km_val').val();
+    } else if (bounds_mode == 'map-rad-deg') {
+      url += '&latitude=' + this.mappos.c_lat +
+        '&longitude=' + this.mappos.c_lng +
+        '&maxradius=' + $('#cust_bounds_map_rad_deg_val').val();
     }
 
     var limit_count = $('#cust_limit_count').val();
