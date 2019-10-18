@@ -34,6 +34,101 @@ import Feature from 'ol/Feature';
 import {Circle, Point} from 'ol/geom';
 
 var EQPlay={
+  view_presets:{
+    california:{
+      lonlat:[-118.76,37.20],
+      zoom:5
+    },
+    ridgecrest:{
+      lonlat:[-117.6, 35.77],
+      zoom:8
+    }
+  },
+  sources:[
+    {
+      is_default:true,
+      id:'ridgecrest-7d-25',
+      title:'M2.5+ Ridgecrest Week from July 4',
+      url:'/assets/json/20190711-0000-2.5_week.geojson.json',
+      view:'ridgecrest'
+    },
+    {
+      id:'ridgecrest-7d-45',
+      title:'M4.5+ Ridgecrest Week from July 4',
+      url:'/assets/json/20190711-0000-4.5_week.geojson.json',
+      view:'ridgecrest'
+    },
+    {
+      id:'ridgecrest-7d-10',
+      title:'M1.0+ Ridgecrest Week from July 4',
+      url:'/assets/json/20190711-0000-1.0_week.geojson.json',
+      view:'ridgecrest'
+    },
+    {
+      id:'usgs-feed-1d-45',
+      title:'M4.5+ Earthquakes Past Day',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson'
+    },
+    {
+      id:'usgs-feed-1d-25',
+      title:'M2.5+ Earthquakes Past Day',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson'
+    },
+    {
+      id:'usgs-feed-1d-10',
+      title:'M1.0+ Earthquakes Past Day',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.geojson'
+    },
+    {
+      id:'usgs-feed-1w-45',
+      title:'M4.5+ Earthquakes Past Week',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson'
+    },
+    {
+      id:'usgs-feed-1w-25',
+      title:'M2.5+ Earthquakes Past Week',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson'
+    },
+    {
+      id:'usgs-feed-1w-10',
+      title:'M1.0+ Earthquakes Past Week',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_week.geojson'
+    },
+    {
+      id:'usgs-feed-1m-45',
+      title:'M4.5+ Earthquakes Past Month',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson'
+    },
+    {
+      id:'usgs-feed-1w-25',
+      title:'M2.5+ Earthquakes Past Month',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson'
+    },
+    {
+      id:'usgs-feed-1w-10',
+      title:'M1.0+ Earthquakes Past Month',
+      url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.geojson'
+    },
+    {
+      id:'usgs-query',
+      title:'USGS catalog custom query',
+      url:'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?'
+    },
+    {
+      id:'emsc-query',
+      title:'EMSC SeismicPortal query',
+      url:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&nodata=404&'
+    },
+    {
+      id:'user-url',
+      title:'User specified URL'
+    },
+    {
+      id:'user-file',
+      title:'User local file'
+    }
+  ],
+  sources_map:{},
   init:function() {
     this.ts_step=0;
     this.target_fps=10;
@@ -45,6 +140,22 @@ var EQPlay={
     this.clear_data();
     this.style_cache={};
     this.scale_line_active=false;
+    this.src=null;
+
+    this.init_source=this.sources[0];
+
+    var i;
+    for(i=0;i<this.sources.length;i++) {
+      this.sources_map[this.sources[i].id]=this.sources[i];
+      if(this.sources[i].is_default) {
+        this.init_source=this.sources[i];
+      }
+    }
+    if(typeof(this.init_source.view) != 'undefined') {
+      this.init_view=this.view_presets[this.init_source.view];
+    } else {
+      this.init_view=this.view_presets['california'];
+    }
 
     this.scale_line = new ScaleLine();
     this.vsource = new VectorSource();
@@ -60,8 +171,8 @@ var EQPlay={
         vlayer
       ],
       view: new View({
-        center: fromLonLat([-117.6, 35.77]),
-        zoom: 8,
+        center: fromLonLat(this.init_view.lonlat),
+        zoom: this.init_view.zoom,
         minZoom: 1
       })
     });
@@ -616,9 +727,15 @@ var EQPlay={
     this.update_cur_time_display();
   },
   change_source:function() {
-    var sel=$('#sel_src').val();
+    var src_id=$('#sel_src').val();
+    if(typeof(this.sources_map[src_id]) == 'undefined') {
+      this.errmsg('unknown source '+src_id);
+      return;
+    }
+    this.src = this.sources_map[src_id];
+
     // emsc doesn't support km radius
-    if(sel == 'emsc-query') {
+    if(src_id == 'emsc-query') {
       if($('#cust_bounds_map_rad_km:checked').length) {
         $('#cust_bounds_map_rad_deg').prop('checked',true);
       }
@@ -626,21 +743,21 @@ var EQPlay={
     } else {
       $('#cust_bounds_map_rad_km').prop('disabled',false);
     }
-    if(sel === 'usgs-query' || sel === 'emsc-query') {
+    if(src_id === 'usgs-query' || src_id === 'emsc-query') {
       $('.cust-src-settings').not('#usgs_query_inputs').hide();
       if($('#cust_start_date').val() == '') {
         $('#cust_start_date').val(this.fmt_date_ymd(new Date()))
       }
       $('#usgs_query_inputs').show();
-    } else if(sel === 'user-url') {
+    } else if(src_id === 'user-url') {
       $('.cust-src-settings').not('#user_url_inputs').hide();
       $('#user_url_inputs').show();
-    } else if(sel === 'user-file') {
+    } else if(src_id === 'user-file') {
       $('.cust-src-settings').not('#user_file_inputs').hide();
       $('#user_file_inputs').show();
     } else {
       $('.cust-src-settings').hide();
-      this.get_data({dataurl:sel,type:'feed-url'});
+      this.get_data({dataurl:this.src.url,type:'feed-url'});
     }
   },
   get_date_input:function(opts) {
@@ -699,16 +816,7 @@ var EQPlay={
   },
   get_cust_data:function() {
     // API documentation at https://earthquake.usgs.gov/fdsnws/event/1/
-    var url;
-    var sel_src=$('#sel_src').val();
-    if(sel_src === 'usgs-query') {
-      url='https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?';
-    } else if(sel_src === 'emsc-query') {
-      url='https://www.seismicportal.eu/fdsnws/event/1/query?format=json&nodata=404&';
-    } else {
-      this.errmsg('unknown source '+sel_src);
-      return;
-    }
+    var url=this.src.url;
     var t_start=this.get_date_input({id:'cust_start',def_h:0,def_m:0});
     if(!t_start) {
       this.errmsg('invalid start date/time');
@@ -763,7 +871,7 @@ var EQPlay={
     url += '&limit='+limit_count;
     url += '&orderby='+$('#cust_order_by').val();
     this.infomsg('custom query url: '+url);
-    this.get_data({dataurl:url,type:sel_src,t_start:t_start,t_end:t_end,limit_count:limit_count});
+    this.get_data({dataurl:url,type:this.src.id,t_start:t_start,t_end:t_end,limit_count:limit_count});
   },
   get_user_url_data:function() {
     var url=$('#user_data_url').val();
@@ -876,7 +984,20 @@ var EQPlay={
       }
     }
   },
+  init_sources_menu:function() {
+    var i
+    var selected;
+    for(i=0;i<this.sources.length;i++) {
+      if(this.sources[i].is_default) {
+        selected=' selected="selected"';
+      } else {
+        selected='';
+      }
+      $('#sel_src').append('<option value="'+this.sources[i].id+'"'+selected+'>'+this.sources[i].title+'</option>');
+    }
+  },
   onready:function() {
+    this.init_sources_menu();
     $('#btn_play').click($.proxy(function() {
       if(this.timer) {
         this.stop_animation();
