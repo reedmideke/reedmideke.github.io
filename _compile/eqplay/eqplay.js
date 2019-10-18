@@ -32,9 +32,12 @@ import {fromLonLat,toLonLat} from 'ol/proj';
 import {Fill, Stroke, Style, Circle as CircleStyle} from 'ol/style';
 import Feature from 'ol/Feature';
 import {Circle, Point} from 'ol/geom';
-
 var EQPlay={
   view_presets:{
+    lomaprieta:{
+      lonlat:[-121.87,37.16],
+      zoom:10
+    },
     california:{
       lonlat:[-118.76,37.20],
       zoom:5
@@ -46,7 +49,24 @@ var EQPlay={
   },
   sources:[
     {
-      is_default:true,
+      // https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=1989-10-17T23:00:00.000Z&endtime=1989-10-18T23:00:00.000Z&minmagnitude=0&minlongitude=-122.88145170896698&maxlatitude=37.94924512645133&maxlongitude=-120.84898100584198&minlatitude=36.353470144072276&limit=20000&orderby=time
+      id:'loma-1d-all',
+      title:'All Loma Prieta, 24h from Oct 17 1989, 4PM',
+      url:'/assets/json/lomaprieta-19891017-1600-all_day.geojson.json',
+      t_start:new Date('1989-10-17T23:00:00.000Z'),
+      t_end:new Date('1989-10-18T23:00:00.000Z'),
+      view:'lomaprieta'
+    },
+    {
+      // https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=1989-10-17T07:00:00.000Z&endtime=1989-10-24T06:59:00.000Z&minmagnitude=1&minlongitude=-122.73932857975363&maxlatitude=37.844735061571996&maxlongitude=-120.70685787662863&minlatitude=36.246733656962874&limit=20000&orderby=time
+      id:'loma-1w-10',
+      title:'M1.0+ Loma Prieta, Week from Oct 17 1989',
+      url:'/assets/json/lomaprieta-19891017-1.0_week.geojson.json',
+      t_start:new Date('1989-10-17T07:00:00.000Z'),
+      t_end:new Date('1989-10-24T06:59:00.000Z'),
+      view:'lomaprieta'
+    },
+    {
       id:'ridgecrest-7d-25',
       title:'M2.5+ Ridgecrest Week from July 4',
       url:'/assets/json/20190711-0000-2.5_week.geojson.json',
@@ -85,6 +105,7 @@ var EQPlay={
       url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson'
     },
     {
+      is_default:true,
       id:'usgs-feed-1w-25',
       title:'M2.5+ Earthquakes Past Week',
       url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson'
@@ -100,12 +121,12 @@ var EQPlay={
       url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson'
     },
     {
-      id:'usgs-feed-1w-25',
+      id:'usgs-feed-1m-25',
       title:'M2.5+ Earthquakes Past Month',
       url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson'
     },
     {
-      id:'usgs-feed-1w-10',
+      id:'usgs-feed-1m-10',
       title:'M1.0+ Earthquakes Past Month',
       url:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.geojson'
     },
@@ -129,6 +150,7 @@ var EQPlay={
     }
   ],
   sources_map:{},
+  hash_params:{},
   init:function() {
     this.ts_step=0;
     this.target_fps=10;
@@ -141,7 +163,9 @@ var EQPlay={
     this.style_cache={};
     this.scale_line_active=false;
     this.src=null;
+    this.scroll_to_map=false; // for permalinks using hash, want to show map
 
+    this.init_hash_params();
     this.init_source=this.sources[0];
 
     var i;
@@ -150,6 +174,9 @@ var EQPlay={
       if(this.sources[i].is_default) {
         this.init_source=this.sources[i];
       }
+    }
+    if(typeof(this.sources_map[this.hash_params['src']]) != 'undefined') {
+      this.init_source=this.sources_map[this.hash_params['src']];
     }
     if(typeof(this.init_source.view) != 'undefined') {
       this.init_view=this.view_presets[this.init_source.view];
@@ -178,6 +205,25 @@ var EQPlay={
     });
     this.map.on('moveend',$.proxy(this.on_map_moveend,this));
     $(document).ready($.proxy(this.onready,this));
+  },
+  init_hash_params:function() {
+    var hash=window.location.hash;
+    if(hash.substr(0,4) !== '#v1,') {
+      return;
+    }
+    var params=hash.substr(4).split(',')
+    var p;
+    var i;
+    for(i=0;i<params.length;i++) {
+      p=params[i].split(':')
+      if(p.length == 1) {
+        this.hash_params[p[0]] = true;
+      } else {
+        this.hash_params[p[0]] = p[1];
+      }
+    }
+    this.scroll_to_map=true;
+    //console.log(this.hash_params);
   },
   // based on https://openlayers.org/en/latest/examples/moveend.html
   wrap_lon:function(value) {
@@ -327,17 +373,23 @@ var EQPlay={
         this.warnmsg('Max results limit hit');
       }
     } else if(opts.type == 'feed-url') {
-      // TODO hacky - assume timespan from feed created date and
-      if(metaurl.match(/_week\.geojson$/)) {
-        days=7;
-      } else if(metaurl.match(/_day\.geojson$/)) {
-        days=1;
-      } else if(metaurl.match(/_month\.geojson$/)) {
-        days=30;
-      }
-      if(days) {
-        this.t_end = new Date(data.metadata.generated);
-        this.t_start = new Date(data.metadata.generated-(days*24*60*60*1000));
+      // allow sources to define timespan
+      if(typeof(this.src.t_start) != 'undefined' && typeof(this.src.t_end) != 'undefined') {
+        this.t_start = this.src.t_start;
+        this.t_end = this.src.t_end;
+      } else {
+        // TODO hacky - assume timespan from feed created date and
+        if(metaurl.match(/_week\.geojson$/)) {
+          days=7;
+        } else if(metaurl.match(/_day\.geojson$/)) {
+          days=1;
+        } else if(metaurl.match(/_month\.geojson$/)) {
+          days=30;
+        }
+        if(days) {
+          this.t_end = new Date(data.metadata.generated);
+          this.t_start = new Date(data.metadata.generated-(days*24*60*60*1000));
+        }
       }
     }
     if(this.t_start === null) {
@@ -988,7 +1040,7 @@ var EQPlay={
     var i
     var selected;
     for(i=0;i<this.sources.length;i++) {
-      if(this.sources[i].is_default) {
+      if(this.sources[i] == this.init_source) {
         selected=' selected="selected"';
       } else {
         selected='';
@@ -1005,6 +1057,9 @@ var EQPlay={
         this.start_animation();
       }
     },this));
+    if(this.scroll_to_map) {
+      $(window).scrollTop($('#map').offset().top);
+    }
     $('#btn_stop').click($.proxy(this.reset_animation,this));
     $('#sel_src').change($.proxy(this.change_source,this));
     $('#btn_cust_get').click($.proxy(this.get_cust_data,this));
