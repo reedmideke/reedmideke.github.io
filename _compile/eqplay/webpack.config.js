@@ -5,7 +5,7 @@ module.exports = function(env, argv) {
     entry: './eqplay.js',
     output: {
       path: __dirname+'/../../assets/js',
-      filename: (env.mode === 'production')?'eqplay.min.js':'eqplay.dev.js'
+      filename: (env.prod)?'eqplay.min.js':'eqplay.dev.js'
     },
     performance: { hints: false }
   }
