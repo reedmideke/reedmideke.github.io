@@ -1,0 +1,12 @@
+.O_o::after {
+	content:"_o";
+}
+.O_o::before {
+	content:"O";
+}
+.O_o:hover::after {
+	content:"_O";
+}
+.O_o:hover::before {
+	content:"o";
+}
