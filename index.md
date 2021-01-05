@@ -5,3 +5,8 @@
 layout: home
 ---
 Nothing to see here. Move along.
+
+![a cat in grass](assets/img/frontpage-cat.jpg)
+
+Wait&hellip; Something __is__ here&hellip; <span class="O_o"></span>
+

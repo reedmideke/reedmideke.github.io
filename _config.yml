@@ -17,7 +17,7 @@ title: Reed's Writes
 author: Reed Mideke
 # email: nope@example.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Something may go here someday
+  Pages for things and stuff
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: reedmideke
