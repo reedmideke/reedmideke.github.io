@@ -17,7 +17,7 @@ Because _gamer_.
 
 USB mice have theoretically been plug-and-play since the last century, but if you want to stop the light show or assign functions to all the buttons, you need to install Razer's[^666] software.
 
-[^666]: Razer&trade; is presumably a registered trademark of Razer, inc., and is used here solely because it's the name of the company that made thing being discussed. Lord knows, I don't own it and wouldn't want to.
+[^666]: Razer&trade; is presumably a registered trademark of Razer, inc., and is used here solely because it's the name of the company that made the thing being discussed. Lord knows, I don't own it and wouldn't want to.
 
 OK, whatever. How bad can it be?
 
