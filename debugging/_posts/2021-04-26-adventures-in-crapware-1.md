@@ -33,7 +33,7 @@ It also wants you to set up an online account. For your mouse[^6].
 
 OK, whatever, SSDs are 10￠/GB so who _really_ cares. Install the driver, skip the online account, turn the LEDs down to 2% brightness, and forget about it.
 
-[^6]: Technically, so it's you can have your settings on multiple machines, by simply installing 400 MB of crapware on each of them and logging into a dodgy online service, rather than setting each up manually like some kind of _filthy savage_.
+[^6]: Technically, it's so you can have your settings on multiple machines, by simply installing 400 MB of crapware on each of them and logging into a dodgy online service, rather than setting each up manually like some kind of _filthy savage_.
 
 ## &hellip; and then the murders began
 At first, it was just a few CPU cycles here and there. Build going a little slow, sluggish tabs, huh, there's that Razer stuff in task manager, whatever, I don't feel like dealing with it.
