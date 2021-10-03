@@ -4,12 +4,12 @@
   "description": "Open layers based earthquake visualizer",
   "license": "BSD-2-Clause",
   "scripts": {
-    "build": "webpack --config webpack.config.js --env.prod --mode production",
-    "build-dev": "webpack --config webpack.config.js --env.dev --mode development"
+    "build": "webpack --config webpack.config.js --env prod --mode production",
+    "build-dev": "webpack --config webpack.config.js --env dev --mode development"
   },
   "devDependencies": {
-    "webpack": "^4.46.0",
-    "webpack-cli": "^3.3.12"
+    "webpack": "^5.56.0",
+    "webpack-cli": "^4.8.0"
   },
   "dependencies": {
     "ol": "^5.3.3"
