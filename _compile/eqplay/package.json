@@ -1,8 +1,17 @@
 {
   "name": "reedmideke-eqplay",
   "version": "1.0.0",
+  "author": {
+    "name": "Reed Mideke"
+  },
+  "homepage": "https://reedmideke.github.io/eqplay/",
   "description": "Open layers based earthquake visualizer",
   "license": "BSD-2-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reedmideke/reedmideke.github.io.git",
+    "directory": "_compile/eqplay"
+  },
   "scripts": {
     "build": "webpack --config webpack.config.js --env prod --mode production",
     "build-dev": "webpack --config webpack.config.js --env dev --mode development"
