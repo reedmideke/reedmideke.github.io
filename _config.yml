@@ -24,6 +24,10 @@ twitter_username: reedmideke
 github_username: reedmideke
 flickr_username: farhill
 
+mastodon:
+  - username: reedmideke
+    instance: mastodon.social
+
 # Build settings
 markdown: kramdown
 theme: minima
