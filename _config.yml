@@ -46,3 +46,9 @@ exclude:
   - vendor/gems/
   - vendor/ruby/
   - _compile/
+
+# Restrict header nav to defined pages
+# https://github.com/jekyll/minima
+header_pages:
+  - about.md
+  - eqplay/index.html

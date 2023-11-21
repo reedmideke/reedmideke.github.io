@@ -1,0 +1,6 @@
+  {%- if page.headincludes.size > 0 -%}
+    {%- for headinc in page.headincludes -%}
+	    {% include {{ headinc }} %}
+    {%- endfor -%}
+  {%- endif -%}
+
