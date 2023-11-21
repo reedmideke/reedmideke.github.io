@@ -192,7 +192,7 @@ This is completely wrong. The code is classic ARM (as opposed to Thumb, Thumb2 o
 
 [^4]: Since it would never be executed, it doesn't actually need to be a `NOP`.
 
-But all of that is just a warmup, because Bard's "explanation" simply ignored a section of code following the `NOP`, reproduced (with original comments) below, which provides the actual reason for the `ADD`:
+But all of that is just a warmup, because Bard's supposedly line-by-line "explanation" simply ignored a section of code following the `NOP`, reproduced (with original comments) below, which provides the actual reason for the `ADD`:
 ```assembly
     LDR     R3, [R5,#-4]!       // fourth arg
     LDR     R2, [R5,#-4]!       // third arg
@@ -312,7 +312,7 @@ call_func_ptr(func_ptr, arg1, arg2, arg3):
 
 This does capture the fact that `call_func_ptr` calls a function pointer[^105] and does something with the arguments, but the details range from wrong to nonsensical. In particular, it claims that `call_func_ptr` takes four arguments, when it actually takes three[^106], and it implies the arguments after `func_ptr` are passed to `func_ptr`, rather than specifying an array which in turn contains an arbitrary number of actual arguments.
 
-The suggestion that `setup_stack_frame` needs the address of the function to be called seems nonsensical, and has no support in the line-by-line description or any relation to the actual code. It's also noteworthy that the made-up error handling mentioned in the line-by-line's "stack setup" section is not mentioned.
+The suggestion that `setup_stack_frame` needs the address of the function to be called seems nonsensical, and has no support in the line-by-line description or any relation to the actual code. It's also noteworthy that the made-up error handling in the line-by-line's "stack setup" section is not mentioned.
 
 Finally, it doesn't include any control flow. Understanding the execution paths would be a primary focus for a human analyst, but Bard's explanation just breezes through it sequentially here, and except for the loop, mostly ignores it or gets it wildly wrong in the line-by-line.
 
@@ -341,7 +341,7 @@ This essentially reiterates the line-by-line. Fair enough.
 > 4. Stores the function pointer in the first slot of the stack frame.
 > 5. Stores the values of the `arg1`, `arg2`, and `arg3` registers in the next three slots of the stack frame.
 
-This is wrong, including some nonsense from the line-by-line (in #1), and also some new nonsense that didn't appear in the line by line.
+This is wrong, including some nonsense from the line-by-line (in #1 and at least partially #2), and also some new nonsense that didn't appear in the line by line.
 
 In particular #4 and #5 appear to be new, and also completely made up. On #4, the function pointer is passed in using `R0` and moved to `R12` for the call, never stored to memory in any form. Similarly for #5, none of the other arguments to `call_func_ptr` are stored to memory.
 
